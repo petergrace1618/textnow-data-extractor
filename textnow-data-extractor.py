@@ -60,6 +60,8 @@ def merge_calls_messages(d1, d2):
     with open('textnow-data/messages.json', encoding="utf-8") as f:
         message_data = json.load(f)
 
+    #TODO: convert utc times to local
+
     # extract call data from the time surrounding the incident
     incident_calls = [c for c in call_data if d1 <= c['start_time'] <= d2]
 
@@ -116,8 +118,7 @@ def datetime_key(o):
 
 
 def json2html(obj):
-    incoming, outgoing  = 1, 2
-    me, eol = '+15037564626', '<br>\n'
+    incoming, outgoing, me = 1, 2, '+15037564626'
 
     def format_metadata():
         obj_type_text = {
@@ -152,28 +153,22 @@ def json2html(obj):
         else:
             obj_type = 'text'
 
-        # html = f'{msg_type_name} message {direction} {redacted(pn)} {get_contact_name(pn)}' + eol
         html = format_metadata()
-        # html += dt + eol
 
         if obj_type == 'text':
             html += f'"{obj["message"]}"' + eol
 
         elif obj_type == 'voicemail-media':
-            vm_path = 'voicemail/' + parse.unquote(media_file)
+            vm_path = 'textnow-data/voicemail/' + parse.unquote(media_file)
             print(vm_path)
-            # if pn in [gyps, unknown]:
-            #     html += f'<audio src="{vm_path}" controls></audio>' + eol
-            # else:
-            html += f'file: {vm_path}' + eol
-            # html += '[Transcript may follow]' + eol
+            html += f'File: {vm_path}' + eol
 
         elif obj_type == 'media':
             media_path = f'textnow-data/media/{media_file}*'
             files = glob(media_path)
             if len(files) > 1:
                 raise ValueError('Duplicate media files')
-            html += f'file: {files[0]}' + eol
+            html += f'File: {files[0]}' + eol
             print(files[0])
 
         else:
@@ -200,33 +195,30 @@ def json2html(obj):
     return html
 
 ### BEGIN helper functions for json2html()
+# local time zone abbreviations
+tz = {
+    'Pacific Daylight Time': 'PDT',
+    'Pacific Standard Time': 'PST'
+}
+
 def iso2local(iso):
     """Converts an ISO format datetime string
     to one in local timezone. """
-    try:
-        # local time
-        lt = datetime.fromisoformat(iso).astimezone()
-        # Sat Nov 02 2024 01:30:53 AM
-        lts = lt.strftime('%a %b %d %Y %I:%M:%S %p')
-        # time zone
-        tz = {
-            'Pacific Daylight Time': 'PDT',
-            'Pacific Standard Time': 'PST'
-        }[lt.tzname()]
-        s = f'{lts} {tz}'
-    except ValueError:
-        # iso is not in proper datetime format
-        s = ''
-    except KeyError:
-        # timezone name is not PST or PDT
-        s = f'{lts} {lt.tzname()}'
+    # local datetime
+    ldt = datetime.fromisoformat(iso).astimezone()
+
+    # local datetime formatted
+    # Format: Sat Nov 02 2024 01:30:53 AM
+    ldtf = ldt.strftime('%a %b %d %Y %I:%M:%S %p')
+
+    s = f'{ldtf} {tz[ldt.tzname()]}'
     return s
 
 def get_contact_name(num):
-    try:
-        c = contacts[normalize_number(num)]
-    except KeyError:
-        c = ''
+    # try:
+    c = contacts.get(normalize_number(num), '')
+    # except KeyError:
+    #     c = ''
     return c
 
 def format_duration(d):
@@ -243,8 +235,6 @@ def redacted(pn):
 
 ### BEGIN helper function for get_contact_name(),
 ### get_contact_from_user_shard(), and json2html()
-# TODO: add code to redact last four digits of phone number
-# TODO: change name to reflect function purpose
 def normalize_number(v):
     """If v is of the form /\\+?1?\\d{10}/
     then v is normalized to /\\+1\\d{10}/,
@@ -276,7 +266,7 @@ def parse_args():
     parser.add_argument('file',
                         nargs=1, type=pathlib.Path,
                         help='Save call/message data to FILE')
-    parser.add_argument('-l', '--list',
+    parser.add_argument('-n', '--name',
                         metavar='PATTERN',
                         help='List all contacts matching %(metavar)s and exit')
     parser.add_argument('-p', '--phone',
@@ -286,17 +276,19 @@ def parse_args():
                         type=datetime.fromisoformat,
                         help='Date(s) of timespan of call/message data to extract')
 
-    cl = '-d 2023-03-07 -d 2023-03-08 text-messages-regarding-e.html'
+    cl = '-d 2023-03-07t12:00 -d 2023-03-08 incident.html'
     ns = parser.parse_args(cl.split())
-    validate_and_normalize_date_interval(ns)
+    normalize_date_interval(ns)
     return ns
 
 
-def validate_and_normalize_date_interval(ns):
-    print(ns)
+def normalize_date_interval(ns):
+    #TODO: make datetimes aware
+
+    pass
 
 
-def print_matching_contact_and_exit(name: str):
+def print_matching_contacts_and_exit(name: str) -> None:
     num = 0
     for (p, n) in contacts.items():
         if re.search(name, n, flags=re.IGNORECASE):
@@ -308,33 +300,12 @@ def print_matching_contact_and_exit(name: str):
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    # exit()
-
+    eol = '<br>\n'
     # used by normalize_number and isvalid_name
     value_pattern = re.compile(r'\+?1?(\d{10})')
     name_pattern = re.compile('[a-zA-Z]+$')
 
-    contacts = get_contacts_from_user_shard()
-
-    if args.list:
-        print_matching_contact_and_exit(args.list)
-
-    # Nov 2 2024 12:00 AM PDT
-    ante = '2023-03-07T08:00'
-    # Nov 4 2024 11:59 PM PST
-    post = '2023-03-09T07:59'
-    calls_and_messages = merge_calls_messages(ante, post)
-
-    doc = '''<!doctype html>\n<html>\n<head>
-    <style> body { font-family: monospace; } </style>
-</head>\n<body>\n'''
-    doc += f''
-
-    for o in calls_and_messages:
-        doc += json2html(o)
-
-    doc += '''</body>\n</html>'''
+    args = parse_args()
 
     path = args.file[0]
     if path.exists():
@@ -342,6 +313,42 @@ if __name__ == '__main__':
         if ok[0] not in ['y', 'Y']:
             print(f'Writing to "{path}" aborted')
             exit()
+
+    contacts = get_contacts_from_user_shard()
+
+    if args.name:
+        print_matching_contacts_and_exit(args.name)
+
+    [ante, post] = ['2024-11-02', '2024-11-05']
+    calls_and_messages = merge_calls_messages(ante, post)
+
+    header = '<!doctype html>\n<html>\n<head>\n'
+    header += '   <style> body { font-family: monospace; } </style>\n'
+    header += '</head>\n<body>\n'
+
+    body = 'CALL AND MESSAGE DATA EXTRACTED FROM TEXTNOW DATA DISCLOSURE PACKAGE' + eol
+    body += eol
+    body += f'FILENAME: {path}' + eol
+    body += f'DATES: {ante} to {post}' + eol
+    body += f'CONTACT(S): '
+
+    if args.phone:
+        phone = normalize_number(args.phone)
+        name = get_contact_name(phone)
+        contact = f'{phone} {name}'
+    else:
+        contact = 'All'
+
+    body += contact + eol
+    body += '-' * 50 + eol + eol
+    # print(body)
+    # exit()
+
+    for o in calls_and_messages:
+        body += json2html(o)
+
+    footer = '''</body>\n</html>'''
+    doc = header + body + footer
 
     with path.open(encoding='utf-8', mode='w') as f:
         f.write(doc)
