@@ -265,7 +265,7 @@ def parse_args():
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
     # TODO: create -c/--contacts option to print contacts
-    #  Make mutually exclusive groups. -n | -c |  -p ( -d | -dd )
+    #  Make mutually exclusive groups. -n | -c |  -p [ -d | -dd ] --html -f
     parser.add_argument('-f', '--file',
                         type=pathlib.Path,
                         default=default_output_file,
@@ -274,6 +274,10 @@ def parse_args():
                         action=PrintMatchingContactsAndExitAction,
                         metavar='PATTERN',
                         help='List all contacts matching %(metavar)s and exit')
+    parser.add_argument('-c', '--contacts',
+                        action=PrintContactsAndExitAction,
+                        nargs=0,
+                        help='Print all contacts and exit')
     parser.add_argument('-p', '--phone',
                         help='Phone # of contact to extract call/message data from')
     group = parser.add_mutually_exclusive_group()
@@ -294,6 +298,7 @@ def parse_args():
     # command line arguments
     # cl = '-dd 2024-11-02 2024-11-05'.split()
     cl = '-dd 2024-11-02 2024-11-04 --html -f incident-calls-and-messages-log.html'.split()
+    cl = '-c'.split()
 
     if len(cl) == 0:
         parser.print_usage()
@@ -306,6 +311,20 @@ def parse_args():
     return args
 
 # BEGIN helper classes for parse_args()
+
+class PrintContactsAndExitAction(argparse.Action):
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, namespace, pattern, option_strings=None):
+        global contacts
+        contacts = get_contacts_from_user_shard()
+        num = 0
+        for (p, n) in contacts.items():
+            print(f'"{n}", {p}')
+            num += 1
+        print(num, 'contacts')
+        exit()
+
 
 class PrintMatchingContactsAndExitAction(argparse.Action):
     def __init__(self, option_strings, dest, **kwargs):
