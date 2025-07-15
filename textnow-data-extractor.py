@@ -1,13 +1,12 @@
 import argparse
 import json
-import re
-import os
 import pathlib
+import re
 import sys
-from sys import exit
 from datetime import datetime, timezone, timedelta
-from urllib import parse
 from glob import glob
+from sys import exit
+from urllib import parse
 
 
 def get_contacts_from_user_shard():
@@ -115,20 +114,20 @@ def datetime_key(o):
 ### END Helper functions for merge_calls_messages()
 
 
-def json2html(obj):
+def json2txt(obj):
     incoming, outgoing, me = 1, 2, '+15037564626'
 
     def format_metadata():
         obj_type_text = {
-            'in': 'Incoming call',
-            'out': 'Outgoing call',
-            'text': 'Text message&nbsp;',
-            'voicemail-media': 'Voicemail&nbsp;&nbsp;&nbsp;&nbsp;',
-            'media': 'Media message'
+            'in':              'Incoming call',
+            'out':             'Outgoing call',
+            'text':            'Text message ',
+            'voicemail-media': 'Voicemail    ',
+            'media':           'Media message'
         }[obj_type]
         direction_text = {
-            incoming: 'from',
-            outgoing: 'to &nbsp;'
+            incoming: 'from ← ← ←',
+            outgoing: 'to → → → →'
         }[direction]
         s = dt + eol
         s += f'{obj_type_text} {direction_text} {redacted(pn)} {get_contact_name(pn)}' + eol
@@ -145,30 +144,32 @@ def json2html(obj):
         # get message type. message types are: text, voicemail, media
         url_regex = r'https://(voicemail-media|media)\.textnow\.com/?\?h=(.*)'
         url_match = re.match(url_regex, obj['message'])
+
         if url_match:
             obj_type = url_match.group(1)
             media_file = url_match.group(2)
         else:
             obj_type = 'text'
+            media_file = None
 
-        html = format_metadata()
+        txt = format_metadata()
 
         if obj_type == 'text':
-            html += f'"{obj["message"]}"' + eol
+            txt += f'"{obj["message"]}"' + eol
 
         elif obj_type == 'voicemail-media':
-            vm_path = 'textnow-data/voicemail/' + parse.unquote(media_file)
+            vm_path = pathlib.Path('textnow-data', 'voicemail', parse.unquote(media_file))
             print(vm_path)
-            html += f'File: {vm_path}' + eol
+            txt += f'[File: {vm_path}]' + eol
 
         elif obj_type == 'media':
-            #TODO use Path.glob instead
-            media_path = f'textnow-data/media/{media_file}*'
-            files = glob(media_path)
-            if len(files) > 1:
-                raise ValueError('Duplicate media files')
-            html += f'File: {files[0]}' + eol
-            print(files[0])
+            media_path = pathlib.Path('textnow-data', 'media')
+            media_file_stem = media_file
+            media_files = list(media_path.glob(f'{media_file_stem}*'))
+            if len(media_files) > 1:
+                raise ValueError(f'Duplicate media files {media_files}')
+            print(media_files[0])
+            txt += f'[File: {media_file[0]}]' + eol
 
         else:
             raise TypeError('Unknown message type')
@@ -182,16 +183,16 @@ def json2html(obj):
             True: ('in', incoming, caller),
             False: ('out', outgoing, called)
         }[called == me]
-        html = format_metadata()
-        html += f"Duration {format_duration(obj['duration'])}" + eol
+        txt = format_metadata()
+        txt += f"Duration {format_duration(obj['duration'])}" + eol
 
     # unknown object
     else:
         print(obj)
         raise TypeError('Unknown object type')
 
-    html += '<br>\n'
-    return html
+    txt += eol
+    return txt
 
 ### BEGIN helper functions for json2html()
 # local time zone abbreviations
@@ -259,138 +260,156 @@ def parse_args():
         option is specified, call/message data is extracted for all 
         contacts in the given timespan. Dates must be in ISO format, 
         and are converted to local time.''',
-        epilog=''' EXAMPLE: "%(prog)s -p 5032271212 -d 2024-05-31 -d 
-        2024-05-01 may-radiocabs.txt" saves all calls/messages to/from 
+        epilog='''EXAMPLE: "%(prog)s -p 5032271212 -dd 2024-05-31 
+        2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
     parser.add_argument('-f', '--file',
-                        type=pathlib.Path, nargs='?',
-                        default='textnow-data-extractor-output.html',
-                        help='Save call/message data to FILE')
+                        type=pathlib.Path,
+                        default=default_output_file,
+                        help='Save call & message data to FILE')
     parser.add_argument('-n', '--name',
                         metavar='PATTERN',
+                        action=PrintMatchingContactsAndExitAction,
                         help='List all contacts matching %(metavar)s and exit')
     parser.add_argument('-p', '--phone',
-                        metavar='PHONENUMBER',
                         help='Phone # of contact to extract call/message data from')
-    parser.add_argument('-d', '--date',
-                        action='append', metavar='DATETIME',
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-d', '--date',
+                        action=SetIntervalForSingleDateAction,
                         type=datetime.fromisoformat,
-                        help='Date(s) of timespan of call/message data to extract')
+                        help='A single date to extract call/message data from')
+    group.add_argument('-dd', '--dates',
+                        nargs=2, metavar='DATE',
+                        action=ValidateAndNormalizeDateIntervalAction,
+                        type=datetime.fromisoformat,
+                        help='A date interval to extract call/message data from')
+    parser.add_argument('--html',
+                        action='store_true', default=False,
+                        help='Output as HTML. Default is plain text.')
 
-    # if len(sys.argv) == 1:
-    #     parser.print_usage()
-    #     exit()
 
     # command line arguments
-    cl = '-d 2018-02-14t12:00:00 -d 2018-02-14t12:00:01'
-    args = parser.parse_args(cl.split())
+    # cl = '-dd 2024-11-02 2024-11-05'.split()
+    cl = '-dd 2024-11-02 2024-11-04 --html -f incident-calls-and-messages-log.html'.split()
 
-    if args.name:
-        global contacts
-        contacts = get_contacts_from_user_shard()
-        print_matching_contacts(args.name)
+    if len(cl) == 0:
+        parser.print_usage()
         exit()
 
-    validate_and_normalize_date_interval(parser, args)
+    global args
+    args = parser.parse_args(cl)
 
-    return args
+    if args.dates is None:
+        printerr('error', 'no dates specified', fatal=True)
+    return
 
 
-# BEGIN helper functions for parse_args()
-def validate_and_normalize_date_interval(parser, args):
+# BEGIN helper classes for parse_args()
+class PrintMatchingContactsAndExitAction(argparse.Action):
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, namespace, pattern, option_strings=None):
+        global contacts
+        contacts = get_contacts_from_user_shard()
+        num = 0
+        for (p, n) in contacts.items():
+            if re.search(pattern, n, flags=re.IGNORECASE):
+                print(n, p)
+                num += 1
+        if num == 0:
+            print(f'No results for "{pattern}"')
+        exit()
+
+
+class ValidateAndNormalizeDateIntervalAction(argparse.Action):
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, ns, dates, option_strings=None):
+        if dates[0] == dates[1]:
+            printerr('error', ' dates can not be equal', fatal=True)
+
+        # ensure args.date[0] < args.date[1]
+        if dates[1] < dates[0]:
+            dates[0], dates[1] = dates[1], dates[0]
+
+        attrs = ['hour', 'minute', 'second', 'microsecond']
+        if sum([getattr(dates[1], attr) for attr in attrs]) == 0:
+            dates[1] = dates[1].replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        ns.dates = [dt.astimezone(tz=timezone.utc) for dt in dates]
+
+
+class SetIntervalForSingleDateAction(argparse.Action):
     # calls.json
     # start: 2016-06-06T22:13:18.000+00:00
     # end: 2025-03-18T19:37:25.000+00:00
     # messages.json
     # start: 2016-03-14T23:13:34.000Z
     # end: 2025-03-19T04:30:09.000Z
-
-    if args.date is None:
-        # TODO: create function to get earliest and latest datetimes
-        #  from call.json and messages.json
-        args.date = [
-            datetime.fromisoformat('2016-03-14T23:13:34.000Z'),
-            datetime.fromisoformat('2025-03-19T04:30:09.000Z')]
-
-    elif len(args.date) == 1:
-        beginning_of_day = args.date[0].replace(
+    def __init__(self, option_strings, dest, **kwargs):
+        super().__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, ns, date, option_string=None):
+        ns.dates = []
+        ns.dates.append(date)
+        beginning_of_day = date.replace(
             hour=0, minute=0, second=0, microsecond=0)
-        one_day = timedelta(days=1)
-        next_day = beginning_of_day + one_day
-        args.date.append(next_day)
+        one_day = timedelta(days=1, microseconds=-1)
+        end_of_day = beginning_of_day + one_day
+        ns.dates.append(end_of_day)
 
         # make datetimes aware in utc time
-        args.date = [dt.astimezone(tz=timezone.utc) for dt in args.date]
+        ns.dates = [dt.astimezone(tz=timezone.utc) for dt in ns.dates]
 
-    elif len(args.date) == 2:
-        if args.date[0] == args.date[1]:
-            print(pathlib.Path(sys.argv[0]).name +
-                  ': error: dates can not be equal',
-                  file=sys.stderr)
-            exit(2)
-
-        # ensure args.date[0] < args.date[1]
-        if args.date[1] < args.date[0]:
-            args.date[0], args.date[1] = args.date[1], args.date[0]
-
-        args.date = [dt.astimezone(tz=timezone.utc) for dt in args.date]
-
-    else:
-        print(pathlib.Path(sys.argv[0]).name +
-              ': error: argument -d/--date: expected 0, 1, or 2 arguments',
-              file=sys.stderr)
-        parser.print_usage(file=sys.stderr)
-        exit(2)
-
-    return
+# END helper classes for parse_args()
 
 
-def print_matching_contacts(name: str) -> None:
-    num = 0
-    for (p, n) in contacts.items():
-        if re.search(name, n, flags=re.IGNORECASE):
-            print(n, p)
-            num += 1
-    if num == 0:
-        print(f'No results for "{name}"')
-    return
-# END helper functions for parse_args()
+def printerr(level, msg, fatal=False):
+    print(f'{pathlib.Path(sys.argv[0]).name}: {level}: {msg}',
+        file=sys.stderr)
+    if fatal:
+        exit(1)
 
 
-# GLOBALS
+# GLOBALS ------
 contacts = None
-eol = '<br>\n'
+eol = '\n'
 value_pattern = re.compile(r'\+?1?(\d{10})')
 name_pattern = re.compile('[a-zA-Z]+$')
+args = None
+default_date_interval = [
+    datetime.fromisoformat('2016-03-14T23:13:34.000Z'),
+    datetime.fromisoformat('2025-03-19T04:30:09.000Z')]
+default_output_file = 'textnow-data-extractor-output.txt'
+# ---------------
 
 if __name__ == '__main__':
-    args = parse_args()
-    # exit()
+    parse_args()
+
+    if args.html and str(args.file) == default_output_file:
+            args.file = args.file.with_suffix('.html')
 
     path = args.file
-    if path is pathlib.Path and path.exists():
-        ok = input(f'File "{path}" already exists. Overwrite? ') + '\n'
-        if ok[0] not in ['y', 'Y']:
-            print(f'Writing to "{path}" aborted')
-            exit()
 
     contacts = get_contacts_from_user_shard()
 
-    ante = args.date[0].isoformat()
-    post = args.date[1].isoformat()
+    ante = args.dates[0].isoformat()
+    post = args.dates[1].isoformat()
     calls_and_messages = merge_calls_messages(ante, post)
 
-    header = '<!doctype html>\n<html>\n<head>\n'
-    header += '   <style> body { font-family: monospace; } </style>\n'
-    header += '</head>\n<body>\n'
+    # horizontal ruler
+    hr = '-' * 52 + eol
+    header = ''
+    if args.html:
+        header += '<!doctype html>\n<html>\n<head>\n'
+        header += '<style> pre { font-family: monospace; } </style>\n'
+        header += '</head>\n<body>\n<pre>\n'
 
-    body = 'CALL AND MESSAGE DATA EXTRACTED FROM TEXTNOW DATA DISCLOSURE PACKAGE' + eol
-    body += eol
-    body += f'FILENAME: {path}' + eol
-    body += f'ANTE: {iso2localf(ante)}' + eol
-    body += f'POST: {iso2localf(post)}' + eol
-    body += f'CONTACT(S): '
+    header += hr
+    header += f'FILENAME: {path}' + eol
+    header += f'DATE INTERVAL START: {iso2localf(ante)}' + eol
+    header += f'DATE INTERVAL END  : {iso2localf(post)}' + eol
+    header += f'CONTACT(S): '
 
     if args.phone:
         phone = normalize_number(args.phone)
@@ -399,17 +418,20 @@ if __name__ == '__main__':
     else:
         contact = 'All'
 
-    body += contact + eol
-    body += '-' * 68 + eol + eol
-    # print(body)
-    # exit()
+    header += contact + eol
+    header += hr + eol
 
+    body = ''
     for o in calls_and_messages:
-        body += json2html(o)
+        body += json2txt(o)
 
-    footer = '-' * 68 + eol
-    footer += '''</body>\n</html>'''
+    footer = hr
+    if args.html:
+        footer += '</pre>\n</body>\n</html>'
+
     doc = header + body + footer
 
     with path.open(encoding='utf-8', mode='w') as f:
         f.write(doc)
+
+    print(f'Saved to "{path}"')
