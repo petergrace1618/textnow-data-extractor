@@ -264,13 +264,15 @@ def parse_args():
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
+    # TODO: create -c/--contacts option to print contacts
+    #  Make mutually exclusive groups. -n | -c |  -p ( -d | -dd )
     parser.add_argument('-f', '--file',
                         type=pathlib.Path,
                         default=default_output_file,
                         help='Save call & message data to FILE')
     parser.add_argument('-n', '--name',
-                        metavar='PATTERN',
                         action=PrintMatchingContactsAndExitAction,
+                        metavar='PATTERN',
                         help='List all contacts matching %(metavar)s and exit')
     parser.add_argument('-p', '--phone',
                         help='Phone # of contact to extract call/message data from')
@@ -280,8 +282,8 @@ def parse_args():
                         type=datetime.fromisoformat,
                         help='A single date to extract call/message data from')
     group.add_argument('-dd', '--dates',
-                        nargs=2, metavar='DATE',
                         action=ValidateAndNormalizeDateIntervalAction,
+                        nargs=2, metavar='DATE',
                         type=datetime.fromisoformat,
                         help='A date interval to extract call/message data from')
     parser.add_argument('--html',
@@ -297,15 +299,14 @@ def parse_args():
         parser.print_usage()
         exit()
 
-    global args
     args = parser.parse_args(cl)
 
     if args.dates is None:
-        printerr('error', 'no dates specified', fatal=True)
-    return
-
+        print_err('error', 'no dates specified', fatal=True)
+    return args
 
 # BEGIN helper classes for parse_args()
+
 class PrintMatchingContactsAndExitAction(argparse.Action):
     def __init__(self, option_strings, dest, **kwargs):
         super().__init__(option_strings, dest, **kwargs)
@@ -327,7 +328,7 @@ class ValidateAndNormalizeDateIntervalAction(argparse.Action):
         super().__init__(option_strings, dest, **kwargs)
     def __call__(self, parser, ns, dates, option_strings=None):
         if dates[0] == dates[1]:
-            printerr('error', ' dates can not be equal', fatal=True)
+            print_err('error', ' dates can not be equal', fatal=True)
 
         # ensure args.date[0] < args.date[1]
         if dates[1] < dates[0]:
@@ -364,7 +365,7 @@ class SetIntervalForSingleDateAction(argparse.Action):
 # END helper classes for parse_args()
 
 
-def printerr(level, msg, fatal=False):
+def print_err(level, msg, fatal=False):
     print(f'{pathlib.Path(sys.argv[0]).name}: {level}: {msg}',
         file=sys.stderr)
     if fatal:
@@ -376,7 +377,6 @@ contacts = None
 eol = '\n'
 value_pattern = re.compile(r'\+?1?(\d{10})')
 name_pattern = re.compile('[a-zA-Z]+$')
-args = None
 default_date_interval = [
     datetime.fromisoformat('2016-03-14T23:13:34.000Z'),
     datetime.fromisoformat('2025-03-19T04:30:09.000Z')]
@@ -384,7 +384,7 @@ default_output_file = 'textnow-data-extractor-output.txt'
 # ---------------
 
 if __name__ == '__main__':
-    parse_args()
+    args = parse_args()
 
     if args.html and str(args.file) == default_output_file:
             args.file = args.file.with_suffix('.html')
