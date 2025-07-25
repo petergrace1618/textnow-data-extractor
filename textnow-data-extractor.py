@@ -4,7 +4,6 @@ import pathlib
 import re
 import sys
 from datetime import datetime, timezone, timedelta
-from glob import glob
 from sys import exit
 from urllib import parse
 
@@ -169,7 +168,7 @@ def json2txt(obj):
             if len(media_files) > 1:
                 raise ValueError(f'Duplicate media files {media_files}')
             print(media_files[0])
-            txt += f'[File: {media_file[0]}]' + eol
+            txt += f'[File: {media_files[0]}]' + eol
 
         else:
             raise TypeError('Unknown message type')
@@ -264,8 +263,7 @@ def parse_args():
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
-    # TODO: create -c/--contacts option to print contacts
-    #  Make mutually exclusive groups. -n | -c |  -p [ -d | -dd ] --html -f
+    # TODO: Make mutually exclusive groups. -n | -c |  -p [ -d | -dd ] --html -f
     parser.add_argument('-c', '--contacts',
                         action=PrintContactsAndExitAction,
                         nargs=0,
@@ -299,10 +297,10 @@ def parse_args():
                         help='Save call & message data to FILE')
 
     # command line arguments
-    # cl = '-d 2024-11-02'.split()
-    # cl = '-dd 2024-11-02 2024-11-04 --html -f incident-calls-and-messages-log.html'.split()
+    # cl = '-d 2025-03-18'.split()
+    cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'.split()
     # cl = '-n ash'.split()
-    cl = '-t'.split()
+    # cl = '-t'.split()
 
     if len(cl) == 0:
         parser.print_usage()
@@ -335,6 +333,7 @@ class PrintDatetimeLimitsAndExit(argparse.Action):
 
         for dt in sorted(d.keys()):
             print(dt, d[dt])
+
         exit()
 
     # create local datetime from utc iso, make naive, and return iso string
@@ -452,10 +451,11 @@ if __name__ == '__main__':
         header += '</head>\n<body>\n<pre>\n'
 
     header += hr
-    header += f'FILENAME: {path}' + eol
-    header += f'DATE INTERVAL START: {iso2localf(ante)}' + eol
-    header += f'DATE INTERVAL END  : {iso2localf(post)}' + eol
-    header += f'CONTACT(S): '
+    header += f'FILENAME   : {path}\n'
+    header += f'START DATE : {iso2localf(ante)}\n'
+    header += f'END DATE   : {iso2localf(post)}\n'
+    header += f'CONTACT(S) : '
+
 
     if args.phone:
         phone = normalize_number(args.phone)
@@ -464,14 +464,18 @@ if __name__ == '__main__':
     else:
         contact = 'All'
 
-    header += contact + eol
-    header += hr + eol
+    header += contact + '\n'
+    header += '\n'
+    header += '(For source code and data see:\n'
+    header += 'https://github.com/petergrace1618/textnow-data-extractor.git)\n'
+    header += hr + '\n'
 
     body = ''
     for o in calls_and_messages:
         body += json2txt(o)
 
     footer = hr
+    footer += f'END: {path}\n'
     if args.html:
         footer += '</pre>\n</body>\n</html>'
 
