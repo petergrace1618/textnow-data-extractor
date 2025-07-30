@@ -42,7 +42,7 @@ def isvalid_name(n):
 ### END helper function for get_contacts_from_user_shard()
 
 
-def merge_calls_messages(d1, d2):
+def merge_calls_messages(d1, d2, pn):
     """
     :rtype: list
     """
@@ -55,16 +55,32 @@ def merge_calls_messages(d1, d2):
     with open('textnow-data/calls.json', encoding='utf-8') as f:
         call_data = json.load(f)
 
+    incident_calls = []
+    for call in call_data:
+        if d1 <= call['start_time'] <= d2:
+            if pn is None:
+                incident_calls.append(call)
+            elif pn == call['caller'] or pn == call['called']:
+                incident_calls.append(call)
+
+    # incident_calls = [c for c in call_data if d1 <= c['start_time'] <= d2]
+
     # load message data
     with open('textnow-data/messages.json', encoding="utf-8") as f:
         message_data = json.load(f)
 
-    incident_calls = [c for c in call_data if d1 <= c['start_time'] <= d2]
+    incident_messages = []
+    for message in message_data:
+        if d1 <= message['date'] <= d2:
+            if pn is None:
+                incident_messages.append(message)
+            elif pn == message['contact_value']:
+                incident_messages.append(message)
 
-    incident_messages = [m for m in message_data if d1 <= m['date'] <= d2]
+    # incident_messages = [m for m in message_data if d1 <= m['date'] <= d2]
 
     # the data in each file is already sorted by date
-    # so just have to merge it together based on date
+    # so just have to merge them together based on date
     return merge_longest(incident_calls, incident_messages)
 
 
@@ -75,6 +91,8 @@ def merge_longest(calls, messages):
     the two lists merged in chronological order.
     53 elements in incident-calls.json
     112 elements in incident-messages.json"""
+    if len(calls) == 0 or len(messages) == 0:
+        return calls + messages
     merged = []
     c = iter(calls)
     m = iter(messages)
@@ -132,7 +150,7 @@ def json2txt(obj):
         s += f'{obj_type_text} {direction_text} {redacted(pn)} {get_contact_name(pn)}' + eol
         return s
 
-    # obj is message
+    # message object
     if 'date' in obj:
         # phone number
         pn = normalize_number(obj['contact_value'])
@@ -153,27 +171,36 @@ def json2txt(obj):
 
         txt = format_metadata()
 
+        # TEXT MESSAGE
         if obj_type == 'text':
             txt += f'"{obj["message"]}"' + eol
 
+        # VOICEMAIL MESSAGE
         elif obj_type == 'voicemail-media':
             vm_path = pathlib.Path('textnow-data', 'voicemail', parse.unquote(media_file))
-            print(vm_path)
-            txt += f'[File: {vm_path}]' + eol
+            print(obj['date'], vm_path, sep='\n')
+            if args.html:
+                txt += f'<audio controls src="{vm_path}"></audio>' + eol
+            else:
+                txt += f'[File: {vm_path}]' + eol
 
+        # MEDIA MESSAGE
         elif obj_type == 'media':
             media_path = pathlib.Path('textnow-data', 'media')
             media_file_stem = media_file
             media_files = list(media_path.glob(f'{media_file_stem}*'))
             if len(media_files) > 1:
                 raise ValueError(f'Duplicate media files {media_files}')
-            print(media_files[0])
-            txt += f'[File: {media_files[0]}]' + eol
+            print(obj['date'], media_files[0], sep='\n')
+            if args.html:
+                txt += f'<img src="{media_files[0]}" alt="{media_files[0]}">' + eol
+            else:
+                txt += f'[File: {media_files[0]}]' + eol
 
         else:
             raise TypeError('Unknown message type')
 
-    # obj is call
+    # call object
     elif 'start_time' in obj:
         caller = normalize_number(obj['caller'])
         called = normalize_number(obj['called'])
@@ -259,7 +286,7 @@ def parse_args():
         option is specified, call/message data is extracted for all 
         contacts in the given timespan. Dates must be in ISO format, 
         and are converted to local time.''',
-        epilog='''EXAMPLE: "%(prog)s -p 5032271212 -dd 2024-05-31 
+        epilog='''EXAMPLE: "$%(prog)s -p 5032271212 -dd 2024-05-31 
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
@@ -280,7 +307,8 @@ def parse_args():
                         metavar='PATTERN',
                         help='List all contacts matching %(metavar)s and exit')
     parser.add_argument('-p', '--phone',
-                        help='Phone # of contact to extract call/message data from')
+                        action=ValidatePhoneNumberAction,
+                        help='Phone # of contact to extract call/message data from',)
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-d', '--date',
                         action=SetIntervalForSingleDateAction,
@@ -297,22 +325,40 @@ def parse_args():
                         help='Save call & message data to FILE')
 
     # command line arguments
-    # cl = '-d 2025-03-18'.split()
-    cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'.split()
-    # cl = '-n ash'.split()
-    # cl = '-t'.split()
+    # cl = '-h'
+    # cl = '-t'
+    # cl = '-d 2024-11-01 -p 5033449503 --html -f '
+    # cl = '-dd 2024-11-02 2024-11-04 --html -f Incident-Calls-and-Messages.html'
+    cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
+    # cl = '-dd 2024-11-05 2024-12-31'
+    # cl = '-n gyps'
+
+    cl = cl.split()
 
     if len(cl) == 0:
         parser.print_usage()
-        exit()
+        exit(1)
 
     args = parser.parse_args(cl)
 
     if args.dates is None:
-        print_err('error', 'no dates specified', fatal=True)
+        print('No dates specified')
+        parser.print_usage()
+        exit(1)
+
     return args
 
 # BEGIN helper classes for parse_args()
+
+class ValidatePhoneNumberAction(argparse.Action):
+    def __call__(self, parser, ns, phone_number, option_string=None):
+        global contacts
+        contacts = get_contacts_from_user_shard()
+        phone_number = normalize_number(phone_number)
+        if phone_number not in contacts:
+            exit(f'No results for {phone_number}')
+        ns.phone = phone_number
+
 
 class PrintDatetimeLimitsAndExit(argparse.Action):
     def __call__(self, parser, namespace, values, option_strings=None):
@@ -379,6 +425,7 @@ class ValidateAndNormalizeDateIntervalAction(argparse.Action):
         if dates[1] < dates[0]:
             dates[0], dates[1] = dates[1], dates[0]
 
+        # if no time specified on end date, make it end of day
         attrs = ['hour', 'minute', 'second', 'microsecond']
         if sum([getattr(dates[1], attr) for attr in attrs]) == 0:
             dates[1] = dates[1].replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -400,8 +447,8 @@ class SetIntervalForSingleDateAction(argparse.Action):
         ns.dates.append(date)
         beginning_of_day = date.replace(
             hour=0, minute=0, second=0, microsecond=0)
-        one_day = timedelta(days=1, microseconds=-1)
-        end_of_day = beginning_of_day + one_day
+        length_of_one_day = timedelta(days=1, microseconds=-1)
+        end_of_day = beginning_of_day + length_of_one_day
         ns.dates.append(end_of_day)
 
         # make datetimes aware in utc time
@@ -417,9 +464,52 @@ def print_err(level, msg, fatal=False):
         exit(1)
 
 
+def format_header():
+    h = ''
+    if args.html:
+        h += '<!doctype html>\n<html>\n<head>\n'
+        h += '<style>\n'
+        h += 'pre { font-family: Roboto, monospace;'
+        h += '  font-size: 1.2em;'
+        h += '  width: 100%;'
+        h += '  text-wrap: wrap;'
+        h += '}\n'
+        h += 'img { max-width: 800px; '
+        h += '  border: 1px black solid;'
+        h += '  border-radius: 1rem;'
+        h += '}\n'
+        h += '</style>\n</head>\n<body>\n<pre>\n'
+
+    h += hr
+    h += f'FILENAME   : {path}\n'
+    h += f'START DATE : {iso2localf(ante)}\n'
+    h += f'END DATE   : {iso2localf(post)}\n'
+    h += f'CONTACT(S) : '
+
+    if args.phone:
+        contact = f'{args.phone} {get_contact_name(args.phone)}'
+    else:
+        contact = 'All'
+
+    h += contact + '\n'
+    h += '\n'
+    h += '(For source code see:\n'
+    if args.html:
+        h += '<a href="https://github.com/petergrace1618/textnow-data-extractor.git">'
+
+    h += 'https://github.com/petergrace1618/textnow-data-extractor.git'
+
+    if args.html:
+        h += '</a>'
+    h += ')\n'
+    h += hr + '\n'
+    return h
+
+
 # GLOBALS ------
 contacts = None
 eol = '\n'
+hr = '-' * 60 + eol     # horizontal ruler
 value_pattern = re.compile(r'\+?1?(\d{10})')
 name_pattern = re.compile('[a-zA-Z]+$')
 default_date_interval = [
@@ -430,49 +520,30 @@ default_output_file = 'textnow-data-extractor-output.txt'
 
 if __name__ == '__main__':
     args = parse_args()
+    # print(args)
 
+    # if --html option specified, change file extension to .html
     if args.html and str(args.file) == default_output_file:
-            args.file = args.file.with_suffix('.html')
+        args.file = args.file.with_suffix('.html')
 
     path = args.file
 
-    contacts = get_contacts_from_user_shard()
+    if contacts is None:
+        contacts = get_contacts_from_user_shard()
 
+    # ante facto, post facto
     ante = args.dates[0].isoformat()
     post = args.dates[1].isoformat()
-    calls_and_messages = merge_calls_messages(ante, post)
+    calls_and_messages = merge_calls_messages(ante, post, args.phone)
 
-    # horizontal ruler
-    hr = '-' * 52 + eol
-    header = ''
-    if args.html:
-        header += '<!doctype html>\n<html>\n<head>\n'
-        header += '<style> pre { font-family: monospace; } </style>\n'
-        header += '</head>\n<body>\n<pre>\n'
+    if len(calls_and_messages) == 0:
+        exit(f'No results for {args.phone} between {ante} and {post}')
 
-    header += hr
-    header += f'FILENAME   : {path}\n'
-    header += f'START DATE : {iso2localf(ante)}\n'
-    header += f'END DATE   : {iso2localf(post)}\n'
-    header += f'CONTACT(S) : '
-
-
-    if args.phone:
-        phone = normalize_number(args.phone)
-        name = get_contact_name(phone)
-        contact = f'{phone} {name}'
-    else:
-        contact = 'All'
-
-    header += contact + '\n'
-    header += '\n'
-    header += '(For source code and data see:\n'
-    header += 'https://github.com/petergrace1618/textnow-data-extractor.git)\n'
-    header += hr + '\n'
+    header = format_header()
 
     body = ''
-    for o in calls_and_messages:
-        body += json2txt(o)
+    for obj in calls_and_messages:
+        body += json2txt(obj)
 
     footer = hr
     footer += f'END: {path}\n'
