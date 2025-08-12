@@ -46,10 +46,6 @@ def merge_calls_messages(d1, d2, pn):
     """
     :rtype: list
     """
-    # # Nov 2 2024 12:00 AM PDT
-    # d1 = '2024-11-02T08:00'
-    # # Nov 4 2024 11:59 PM PST
-    # d2 = '2024-11-05T07:59'
 
     # load call data
     with open('textnow-data/calls.json', encoding='utf-8') as f:
@@ -63,8 +59,6 @@ def merge_calls_messages(d1, d2, pn):
             elif pn == call['caller'] or pn == call['called']:
                 incident_calls.append(call)
 
-    # incident_calls = [c for c in call_data if d1 <= c['start_time'] <= d2]
-
     # load message data
     with open('textnow-data/messages.json', encoding="utf-8") as f:
         message_data = json.load(f)
@@ -77,8 +71,6 @@ def merge_calls_messages(d1, d2, pn):
             elif pn == message['contact_value']:
                 incident_messages.append(message)
 
-    # incident_messages = [m for m in message_data if d1 <= m['date'] <= d2]
-
     # the data in each file is already sorted by date
     # so just have to merge them together based on date
     return merge_longest(incident_calls, incident_messages)
@@ -88,15 +80,12 @@ def merge_calls_messages(d1, d2, pn):
 def merge_longest(calls, messages):
     """An ad hoc version of itertools.zip_longest.
     Instead of returning a list of tuples, it returns
-    the two lists merged in chronological order.
-    53 elements in incident-calls.json
-    112 elements in incident-messages.json"""
+    the two lists merged in chronological order."""
     if len(calls) == 0 or len(messages) == 0:
         return calls + messages
     merged = []
     c = iter(calls)
     m = iter(messages)
-    # TODO: fix when calls and/or messages is empty
     call = next(c)
     message = next(m)
     while True:
@@ -285,40 +274,47 @@ def parse_args():
         data for the given phone # is extracted. If only -d/--date 
         option is specified, call/message data is extracted for all 
         contacts in the given timespan. Dates must be in ISO format, 
-        and are converted to local time.''',
+        and are converted to local time. If no file is specified, saves
+        output to textnow-data-extractor-output.txt''',
         epilog='''EXAMPLE: "$%(prog)s -p 5032271212 -dd 2024-05-31 
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
-    # TODO: Make mutually exclusive groups. -n | -c |  -p [ -d | -dd ] --html -f
-    parser.add_argument('-c', '--contacts',
+    # TODO: Make mutually exclusive groups.
+    #  [ -n | -c | -t | -p ] [ -d | -dd ] [ --html | --json ] [ -f ]
+    top_level_group = parser.add_mutually_exclusive_group()
+    top_level_group.add_argument('-c', '--contacts',
                         action=PrintContactsAndExitAction,
                         nargs=0,
                         help='Print all contacts and exit')
-    parser.add_argument('-t', '--timespan',
+    top_level_group.add_argument('-t', '--timespan',
                         action=PrintDatetimeLimitsAndExit,
                         nargs=0,
-                        help='Print the earliest and latest datetimes in calls.json and messages.json')
-    parser.add_argument('--html',
-                        action='store_true', default=False,
-                        help='Output as HTML. Default is plain text.')
-    parser.add_argument('-n', '--name',
+                        help='Print the earliest and latest datetimes in calls.json and messages.json and exit')
+    top_level_group.add_argument('-n', '--name',
                         action=PrintMatchingContactsAndExitAction,
                         metavar='PATTERN',
                         help='List all contacts matching %(metavar)s and exit')
-    parser.add_argument('-p', '--phone',
+    top_level_group.add_argument('-p', '--phone',
                         action=ValidatePhoneNumberAction,
                         help='Phone # of contact to extract call/message data from',)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-d', '--date',
+    date_group = parser.add_mutually_exclusive_group()
+    date_group.add_argument('-d', '--date',
                         action=SetIntervalForSingleDateAction,
                         type=datetime.fromisoformat,
                         help='A single date to extract call/message data from')
-    group.add_argument('-dd', '--dates',
+    date_group.add_argument('-dd', '--dates',
                         action=ValidateAndNormalizeDateIntervalAction,
                         nargs=2, metavar='DATE',
                         type=datetime.fromisoformat,
                         help='A date interval to extract call/message data from')
+    file_type_group = parser.add_mutually_exclusive_group()
+    file_type_group.add_argument('--html',
+                        action='store_true', default=False,
+                        help='Output as HTML.')
+    file_type_group.add_argument('--raw',
+                         action='store_true', default=False,
+                         help='Output as JSON.')
     parser.add_argument('-f', '--file',
                         type=pathlib.Path,
                         default=default_output_file,
@@ -326,11 +322,11 @@ def parse_args():
 
     # command line arguments
     # cl = '-h'
-    # cl = '-t'
-    # cl = '-d 2024-11-01 -p 5033449503 --html -f '
-    cl = '-dd 2024-11-02 2024-11-04 --html -f Incident-Calls-and-Messages.html'
+    # cl = ''
+    # cl = '-d 2024-11-01 -p 5033449503 -f Pre-Incident-Calls-and-Messages.txt'
+    # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
     # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
-    # cl = '-dd 2024-11-05 2024-12-31'
+    cl = '-d 2024-11-02  --raw'
     # cl = '-n gyps'
 
     cl = cl.split()
@@ -522,9 +518,12 @@ if __name__ == '__main__':
     args = parse_args()
     # print(args)
 
-    # if --html option specified, change file extension to .html
-    if args.html and str(args.file) == default_output_file:
-        args.file = args.file.with_suffix('.html')
+    # if --html/--json option specified, change file extension
+    if str(args.file) == default_output_file:
+        if args.html:
+            args.file = args.file.with_suffix('.html')
+        elif args.raw:
+            args.file = args.file.with_suffix('.raw.txt')
 
     path = args.file
 
@@ -543,7 +542,10 @@ if __name__ == '__main__':
 
     body = ''
     for obj in calls_and_messages:
-        body += json2txt(obj)
+        if args.raw:
+            body += json.dumps(obj, ensure_ascii=False, indent=4) + ',\n'
+        else:
+            body += json2txt(obj)
 
     footer = hr
     footer += f'END: {path}\n'
