@@ -280,8 +280,6 @@ def parse_args():
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
 
-    # TODO: Make mutually exclusive groups.
-    #  [ -n | -c | -t | -p ] [ -d | -dd ] [ --html | --json ] [ -f ]
     top_level_group = parser.add_mutually_exclusive_group()
     top_level_group.add_argument('-c', '--contacts',
                         action=PrintContactsAndExitAction,
@@ -311,10 +309,10 @@ def parse_args():
     file_type_group = parser.add_mutually_exclusive_group()
     file_type_group.add_argument('--html',
                         action='store_true', default=False,
-                        help='Output as HTML.')
+                        help='Output as HTML document.')
     file_type_group.add_argument('--raw',
                          action='store_true', default=False,
-                         help='Output as JSON.')
+                         help='Output call/message data in raw JSON format.')
     parser.add_argument('-f', '--file',
                         type=pathlib.Path,
                         default=default_output_file,
@@ -326,7 +324,7 @@ def parse_args():
     # cl = '-d 2024-11-01 -p 5033449503 -f Pre-Incident-Calls-and-Messages.txt'
     # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
     # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
-    cl = '-d 2024-11-02  --raw'
+    cl = '-d 2024-11-02 --raw'
     # cl = '-n gyps'
 
     cl = cl.split()
