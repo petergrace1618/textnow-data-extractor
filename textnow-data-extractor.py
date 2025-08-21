@@ -321,10 +321,11 @@ def parse_args():
     # command line arguments
     # cl = '-h'
     # cl = ''
-    # cl = '-d 2024-11-01 -p 5033449503 -f Pre-Incident-Calls-and-Messages.txt'
+    # cl = '-dd 2024-11-02 2024-11-03 -p 5033449503 -f gyps-november-2.txt'
+    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html'
     # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
     # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
-    cl = '-d 2024-11-02 --raw'
+    cl = '-d 2000-11-02'
     # cl = '-n gyps'
 
     cl = cl.split()
@@ -464,18 +465,18 @@ def format_header():
         h += '<!doctype html>\n<html>\n<head>\n'
         h += '<style>\n'
         h += 'pre { font-family: Roboto, monospace;'
-        h += '  font-size: 1.2em;'
+        # h += '  font-size: 1.2em;'
         h += '  width: 100%;'
         h += '  text-wrap: wrap;'
         h += '}\n'
-        h += 'img { max-width: 600px; '
+        h += 'img { max-width: 400px; '
         h += '  border: 1px black solid;'
         h += '  border-radius: 1rem;'
         h += '}\n'
         h += '</style>\n</head>\n<body>\n<pre>\n'
 
     h += hr
-    h += f'FILENAME   : {path}\n'
+    h += f'FILENAME   : {args.file}\n'
     h += f'START DATE : {iso2localf(ante)}\n'
     h += f'END DATE   : {iso2localf(post)}\n'
     h += f'CONTACT(S) : '
@@ -516,14 +517,14 @@ if __name__ == '__main__':
     args = parse_args()
     # print(args)
 
-    # if --html/--json option specified, change file extension
+    # if --html/--raw option specified, change file extension
     if str(args.file) == default_output_file:
         if args.html:
             args.file = args.file.with_suffix('.html')
         elif args.raw:
             args.file = args.file.with_suffix('.raw.txt')
 
-    path = args.file
+    path = 'output' / args.file
 
     if contacts is None:
         contacts = get_contacts_from_user_shard()
@@ -546,13 +547,17 @@ if __name__ == '__main__':
             body += json2txt(obj)
 
     footer = hr
-    footer += f'END: {path}\n'
+    footer += f'END: {args.file}\n'
     if args.html:
         footer += '</pre>\n</body>\n</html>'
 
     doc = header + body + footer
 
-    with path.open(encoding='utf-8', mode='w') as f:
-        f.write(doc)
+    try:
+        with path.open(encoding='utf-8', mode='w') as f:
+            f.write(doc)
+    except FileNotFoundError as e:
+        print(e)
+        exit(2)
 
     print(f'Saved to "{path}"')

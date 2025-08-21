@@ -1,0 +1,195 @@
+------------------------------------------------------------
+FILENAME   : raw-output-sample.txt
+START DATE : Sat Nov 02 2024 12:00:00 AM PDT
+END DATE   : Sat Nov 02 2024 11:59:59 PM PDT
+CONTACT(S) : All
+
+(For source code see:
+https://github.com/petergrace1618/textnow-data-extractor.git)
+------------------------------------------------------------
+
+{
+    "start_time": "2024-11-02T08:30:53.000+00:00",
+    "duration": 7.0,
+    "caller": "+15037564626",
+    "called": "+15033449503"
+},
+{
+    "start_time": "2024-11-02T15:23:02.000+00:00",
+    "duration": 12.0,
+    "caller": "+15037564626",
+    "called": "+15033449503"
+},
+{
+    "start_time": "2024-11-02T15:23:41.000+00:00",
+    "duration": 0.0,
+    "caller": "+15037564626",
+    "called": "+15033449503"
+},
+{
+    "start_time": "2024-11-02T20:03:34.000+00:00",
+    "duration": 47.0,
+    "caller": "+15417666200",
+    "called": "+15037564626"
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15417666200",
+    "contact_name": "",
+    "date": "2024-11-02T20:04:22.000Z",
+    "message": "https://voicemail-media.textnow.com?h=093081df-81c1-47fb-a7d7-59fdca6ab412_15037564626_%2B15417666200.wav",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15417666200",
+    "contact_name": "",
+    "date": "2024-11-02T20:04:48.000Z",
+    "message": "This is Lynn benton alert. Please listen carefully to the following important message. This is the past of the lynn benton alert system. Please do not call 911. In the event of a real emergency, this message will contain critical life safety information. As part of this test, this is a reminder that daylight savings time begin tonight at 2 AM. Please remember to adjust your clocks back one hour. This is only a test. Thank you.",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15037527597",
+    "contact_name": "Matt Johnson",
+    "date": "2024-11-02T21:37:48.000Z",
+    "message": "Hey, television repair man. Give me a call when you have a minute. \n\n\nSounds like the opening lyric to a very bad song",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "start_time": "2024-11-02T22:52:05.000+00:00",
+    "duration": 7.0,
+    "caller": "+15037564626",
+    "called": "+15037527597"
+},
+{
+    "start_time": "2024-11-02T22:53:09.000+00:00",
+    "duration": 6.0,
+    "caller": "+15037564626",
+    "called": "+17076849861"
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 2,
+    "contact_value": "+15037527597",
+    "contact_name": "",
+    "date": "2024-11-02T22:55:13.000Z",
+    "message": "Sounds like a Dire Straits B-side.",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 2,
+    "contact_value": "+17076849861",
+    "contact_name": "",
+    "date": "2024-11-02T22:56:09.000Z",
+    "message": "Gonna head over soon if you're home.",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "start_time": "2024-11-02T22:59:00.000+00:00",
+    "duration": 1434.0,
+    "caller": "+15037527597",
+    "called": "+15037564626"
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15033449503",
+    "contact_name": "Gyps",
+    "date": "2024-11-03T00:59:21.000Z",
+    "message": "Just letting you know that everythingâ€™s good at work and they werenâ€™t mad at all. Just worried.",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15033449503",
+    "contact_name": "Gyps",
+    "date": "2024-11-03T00:59:47.000Z",
+    "message": "I feel like such an Asshole. Iâ€™m never forgetting to set my alarm again!!!",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15033449503",
+    "contact_name": "Gyps",
+    "date": "2024-11-03T01:01:29.000Z",
+    "message": "Anyways, hope youâ€™re enjoying your day. Miss you. Love you. Want a pizza when I come home? Or whatever?? Let me know. We also make some awesome chicken wings. BBQ and Korean, I can leave sauce on the side so you can decide which one you like",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "start_time": "2024-11-03T03:26:44.000+00:00",
+    "duration": 306.0,
+    "caller": "+15033449503",
+    "called": "+15037564626"
+},
+{
+    "start_time": "2024-11-03T05:58:43.000+00:00",
+    "duration": 848.0,
+    "caller": "+15033449503",
+    "called": "+15037564626"
+},
+{
+    "start_time": "2024-11-03T06:13:50.000+00:00",
+    "duration": 45.0,
+    "caller": "+15037564626",
+    "called": "+15035737544"
+},
+{
+    "start_time": "2024-11-03T06:23:55.000+00:00",
+    "duration": 100.0,
+    "caller": "+15035737544",
+    "called": "+15037564626"
+},
+{
+    "start_time": "2024-11-03T06:41:05.000+00:00",
+    "duration": 10.0,
+    "caller": "+15037564626",
+    "called": "+15038833333"
+},
+{
+    "start_time": "2024-11-03T06:42:01.000+00:00",
+    "duration": 0.0,
+    "caller": "+15033449503",
+    "called": "+15037564626"
+},
+{
+    "username": "petergrace",
+    "device_id": "",
+    "direction": 1,
+    "contact_value": "+15033449503",
+    "contact_name": "",
+    "date": "2024-11-03T06:42:01.000Z",
+    "message": "Missed call from Gyps",
+    "read": 1,
+    "deleted": 0
+},
+{
+    "start_time": "2024-11-03T06:42:58.000+00:00",
+    "duration": 581.0,
+    "caller": "+15033449503",
+    "called": "+15037564626"
+},
+------------------------------------------------------------
+END: raw-output-sample.txt

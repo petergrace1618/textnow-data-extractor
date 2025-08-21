@@ -1,0 +1,88 @@
+------------------------------------------------------------
+FILENAME   : Pre-Incident-Calls-and-Messages.txt
+START DATE : Fri Nov 01 2024 12:00:00 AM PDT
+END DATE   : Fri Nov 01 2024 11:59:59 PM PDT
+CONTACT(S) : +15033449503 Gyps
+
+(For source code see:
+https://github.com/petergrace1618/textnow-data-extractor.git)
+------------------------------------------------------------
+
+Fri Nov 01 2024 07:19:34 AM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"K bye"
+
+Fri Nov 01 2024 03:42:31 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Hey. I venmod you November rent. Iâ€™ll pay you more when I get my other pay check"
+
+Fri Nov 01 2024 04:19:33 PM PDT
+Text message  to → → → → +1503344XXXX Gyps
+"Okie doke"
+
+Fri Nov 01 2024 08:25:41 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Hey. Iâ€™ll buy beer tonight. Want to hang out and talk after work? I know youâ€™ve been stressed out, but I really want to alleviate as much of your stress as possible and work on nurturing our relationship. I want to show how sorry I am with my  from here on out."
+
+Fri Nov 01 2024 08:30:53 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Also.. would you like a pizza from work? A bacon cheeseburger???"
+
+Fri Nov 01 2024 08:30:57 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Both?"
+
+Fri Nov 01 2024 08:33:03 PM PDT
+Text message  to → → → → +1503344XXXX Gyps
+"Smorgasbord."
+
+Fri Nov 01 2024 08:38:53 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"You got it."
+
+Fri Nov 01 2024 08:56:26 PM PDT
+Text message  to → → → → +1503344XXXX Gyps
+"Smorgasbeerd"
+
+Fri Nov 01 2024 08:57:09 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Iâ€™ll get that too"
+
+Fri Nov 01 2024 09:36:49 PM PDT
+Text message  to → → → → +1503344XXXX Gyps
+"When you getting home?"
+
+Fri Nov 01 2024 09:38:04 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Iâ€™m clocking out in fifteen minutes"
+
+Fri Nov 01 2024 10:34:45 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Hey, the owner came in and I got caught up talking. Iâ€™m at the max. Itâ€™s coming in 7 minutes"
+
+Fri Nov 01 2024 10:35:05 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Actually.. five minutes"
+
+Fri Nov 01 2024 10:49:19 PM PDT
+Text message  to → → → → +1503344XXXX Gyps
+"I'm at the Alibi.  Surprise."
+
+Fri Nov 01 2024 11:04:53 PM PDT
+Incoming call from ← ← ← +1503344XXXX Gyps
+Duration 7.0 (0m 7s)
+
+Fri Nov 01 2024 11:05:21 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"K"
+
+Fri Nov 01 2024 11:06:12 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Be over in a minutes"
+
+Fri Nov 01 2024 11:06:21 PM PDT
+Text message  from ← ← ← +1503344XXXX Gyps
+"Dropping off beer and food at the house"
+
+------------------------------------------------------------
+END: Pre-Incident-Calls-and-Messages.txt
