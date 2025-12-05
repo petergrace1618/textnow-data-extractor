@@ -1,6 +1,6 @@
 import argparse
 import json
-import pathlib
+from pathlib import Path
 import re
 import sys
 from datetime import datetime, timezone, timedelta
@@ -122,29 +122,32 @@ def datetime_key(o):
 
 def json2txt(obj):
     incoming, outgoing, me = 1, 2, '+15037564626'
+    obj_type_text = {
+        'in':              'INCOMING CALL',
+        'out':             'OUTGOING CALL',
+        'text':            'TEXT MESSAGE',
+        'voicemail-media': 'VOICEMAIL',
+        'media':           'MEDIA MESSAGE'
+    }
+    audio_formats = ['.wav', '.mp4', '.3gpp', '.AMR']
+    img_formats = ['.gif', '.jpeg', '.png']
+    vm_dir = Path('textnow-data', 'voicemail')
+    media_dir = Path('textnow-data', 'media')
+    iso = obj['date'] if 'date' in obj else obj['start_time']
+    dt = iso2localf(iso)
 
-    def format_metadata():
-        obj_type_text = {
-            'in':              'Incoming call',
-            'out':             'Outgoing call',
-            'text':            'Text message ',
-            'voicemail-media': 'Voicemail    ',
-            'media':           'Media message'
-        }[obj_type]
-        direction_text = {
-            incoming: 'from ← ← ←',
-            outgoing: 'to → → → →'
-        }[direction]
-        s = dt + eol
-        s += f'{obj_type_text} {direction_text} {redacted(pn)} {get_contact_name(pn)}' + eol
-        return s
+    if args.html:
+        eol = '<br>\n'
+        txt = f'<li id="{iso2id(iso)}">\n'
+    else:
+        eol = '\n'
+        txt = ''
 
-    # message object
+    # MESSAGE OBJECT
     if 'date' in obj:
         # phone number
         pn = normalize_number(obj['contact_value'])
         # datetime
-        dt = iso2localf(obj['date'])
         direction = obj['direction']
 
         # get message type. message types are: text, voicemail, media
@@ -153,68 +156,106 @@ def json2txt(obj):
 
         if url_match:
             obj_type = url_match.group(1)
-            media_file = url_match.group(2)
+            media_file = parse.unquote(url_match.group(2))
+        elif re.match('^Missed call from', obj['message']):
+            obj_type = 'missed-call'
+            media_file = None
         else:
             obj_type = 'text'
             media_file = None
 
-        txt = format_metadata()
-
         # TEXT MESSAGE
         if obj_type == 'text':
+            if direction == incoming:
+                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &rarr; &rarr; Me' + eol
+            else:
+                txt += f'[{obj_type_text[obj_type]}] Me &rarr; &rarr; {get_contact_name(pn)} {pn}' + eol
             txt += f'"{obj["message"]}"' + eol
+
+        elif obj_type == 'missed-call':
+            txt += f'[MISSED CALL] {get_contact_name(pn)} {pn}' + eol
 
         # VOICEMAIL MESSAGE
         elif obj_type == 'voicemail-media':
-            vm_path = pathlib.Path('textnow-data', 'voicemail', parse.unquote(media_file))
-            print(obj['date'], vm_path, sep='\n')
+            # Case: file exists but in wrong directory
+            found = False
+            for d in [vm_dir, media_dir]:
+                vm_path =  vm_dir / media_file
+                if vm_path.exists():
+                    found = True
+                    break
+
+            print(found, iso, vm_path)
+            txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn}' + eol
+            txt += f'[File: {vm_path}]' + eol
             if args.html:
                 txt += f'<audio controls src="{vm_path}"></audio>' + eol
-            else:
-                txt += f'[File: {vm_path}]' + eol
 
         # MEDIA MESSAGE
         elif obj_type == 'media':
-            media_path = pathlib.Path('textnow-data', 'media')
-            media_file_stem = media_file
-            media_files = list(media_path.glob(f'{media_file_stem}*'))
-            if len(media_files) > 1:
-                raise ValueError(f'Duplicate media files {media_files}')
-            print(obj['date'], media_files[0], sep='\n')
-            if args.html:
-                txt += f'<img src="{media_files[0]}" alt="{media_files[0]}">' + eol
+            # Case: file exists but in wrong directory
+            # Case: filename portion of url has no extension, but file does. use glob
+            found = False
+            for d in [media_dir, vm_dir]:
+                media_path = d / media_file
+                if media_path.exists():
+                    found = True
+                    break
+
+                media_files = list(d.glob(media_file + '*'))
+                if len(media_files) > 1:
+                    raise ValueError('Duplicate files: '+str(media_files))
+
+                if len(media_files) == 1:
+                    media_path = media_files[0]
+                    found = True
+                    break
+
+            print(found, iso, media_path)
+            if direction == incoming:
+                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &rarr; Me' + eol
             else:
-                txt += f'[File: {media_files[0]}]' + eol
+                txt += f'[{obj_type_text[obj_type]}] Me &rarr; {get_contact_name(pn)} {pn}' + eol
+            txt += f'{found}: {media_path}' + eol
+            media_path_ext = Path(media_path).suffix
+            if args.html:
+                if media_path_ext in audio_formats:
+                    txt += f'<audio controls src="{media_path}"></audio>' + eol
+                elif media_path_ext in img_formats:
+                    txt += f'<img src="{media_path}" alt="{media_path}">' + eol
 
         else:
+            print(obj)
             raise TypeError('Unknown message type')
 
-    # call object
+    # CALL OBJECT
     elif 'start_time' in obj:
         caller = normalize_number(obj['caller'])
         called = normalize_number(obj['called'])
-        dt = iso2localf(obj['start_time'])
         obj_type, direction, pn = {
             True: ('in', incoming, caller),
             False: ('out', outgoing, called)
         }[called == me]
-        txt = format_metadata()
-        txt += f"Duration {format_duration(obj['duration'])}" + eol
+        txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn}' + eol
+        txt += f"Duration: {format_duration(obj['duration'])}" + eol
 
     # unknown object
     else:
         print(obj)
         raise TypeError('Unknown object type')
 
-    txt += eol
+    # add timestamp
+    txt += f'[{dt}]' + eol
+
+    if args.html:
+        txt += '</li>\n'
+    else:
+        txt += eol
     return txt
 
 ### BEGIN helper functions for json2html()
-# local time zone abbreviations
-tz = {
-    'Pacific Daylight Time': 'PDT',
-    'Pacific Standard Time': 'PST'
-}
+def iso2id(iso):
+    return datetime.fromisoformat(iso).astimezone().strftime('%a-%b-%d-%Y-%I-%M-%S')
 
 def iso2localf(iso):
     """Converts an ISO datetime string to a local datetime string
@@ -227,7 +268,12 @@ def iso2localf(iso):
     # Format: Sat Nov 02 2024 01:30:53 AM
     ldtf = ldt.strftime('%a %b %d %Y %I:%M:%S %p')
 
-    s = f'{ldtf} {tz[ ldt.tzname() ]}'
+    tz = {
+        'Pacific Daylight Time': 'PDT',
+        'Pacific Standard Time': 'PST'
+    }[ldt.tzname()]
+
+    s = f'{ldtf} {tz}'
     return s
 
 def get_contact_name(num):
@@ -239,7 +285,7 @@ def get_contact_name(num):
 
 def format_duration(d):
     m, s = divmod(d, 60)
-    return f"{d} ({int(m)}m {int(s)}s)"
+    return f"{int(m)}m {int(s)}s"
 
 def redacted(pn):
     """Replace the last four digits of the phone number with X's.
@@ -286,9 +332,9 @@ def parse_args():
                         nargs=0,
                         help='Print all contacts and exit')
     top_level_group.add_argument('-t', '--timespan',
-                        action=PrintDatetimeLimitsAndExit,
-                        nargs=0,
-                        help='Print the earliest and latest datetimes in calls.json and messages.json and exit')
+                                 action=PrintDatetimeLimitsAndExitAction,
+                                 nargs=0,
+                                 help='Print the earliest and latest datetimes in calls.json and messages.json and exit')
     top_level_group.add_argument('-n', '--name',
                         action=PrintMatchingContactsAndExitAction,
                         metavar='PATTERN',
@@ -310,23 +356,24 @@ def parse_args():
     file_type_group.add_argument('--html',
                         action='store_true', default=False,
                         help='Output as HTML document.')
-    file_type_group.add_argument('--raw',
+    file_type_group.add_argument('-j', '--json',
                          action='store_true', default=False,
                          help='Output call/message data in raw JSON format.')
     parser.add_argument('-f', '--file',
-                        type=pathlib.Path,
+                        type=Path,
                         default=default_output_file,
                         help='Save call & message data to FILE')
 
     # command line arguments
-    # cl = '-h'
     # cl = ''
-    # cl = '-dd 2024-11-02 2024-11-03 -p 5033449503 -f gyps-november-2.txt'
-    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html'
-    # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
-    # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
-    cl = '-d 2000-11-02'
+    # cl = '-h'
     # cl = '-n gyps'
+    # cl = '-p 5035680639'
+    # cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -f g-temp-number.html --html'
+    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html'
+    cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
+    # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
+    # cl = '-d 2017-02-11 --html'
 
     cl = cl.split()
 
@@ -355,7 +402,7 @@ class ValidatePhoneNumberAction(argparse.Action):
         ns.phone = phone_number
 
 
-class PrintDatetimeLimitsAndExit(argparse.Action):
+class PrintDatetimeLimitsAndExitAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_strings=None):
         d = {}
         # load call data
@@ -453,7 +500,7 @@ class SetIntervalForSingleDateAction(argparse.Action):
 
 
 def print_err(level, msg, fatal=False):
-    print(f'{pathlib.Path(sys.argv[0]).name}: {level}: {msg}',
+    print(f'{Path(sys.argv[0]).name}: {level}: {msg}',
         file=sys.stderr)
     if fatal:
         exit(1)
@@ -462,20 +509,33 @@ def print_err(level, msg, fatal=False):
 def format_header():
     h = ''
     if args.html:
-        h += '<!doctype html>\n<html>\n<head>\n'
-        h += '<style>\n'
-        h += 'pre { font-family: Roboto, monospace;'
-        # h += '  font-size: 1.2em;'
-        h += '  width: 100%;'
-        h += '  text-wrap: wrap;'
-        h += '}\n'
-        h += 'img { max-width: 400px; '
-        h += '  border: 1px black solid;'
-        h += '  border-radius: 1rem;'
-        h += '}\n'
-        h += '</style>\n</head>\n<body>\n<pre>\n'
+        h += '''<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>''' + str(args.file) + '''</title>
+  <link rel="icon" href="pentagram-icon.png" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+<style>
+img { 
+  width: 75%; 
+  border: 1px black solid;
+  border-radius: 1rem;
+}
+li {
+  margin-bottom: 1.5em;
+}
+</style>
+</head>
+<body>
+<header class="container">
+'''
 
-    h += hr
+    if args.html:
+        h += '<hr>\n<pre>\n'
+    else:
+        h += hr
     h += f'FILENAME   : {args.file}\n'
     h += f'START DATE : {iso2localf(ante)}\n'
     h += f'END DATE   : {iso2localf(post)}\n'
@@ -496,20 +556,26 @@ def format_header():
 
     if args.html:
         h += '</a>'
+
     h += ')\n'
-    h += hr + '\n'
+
+    if args.html:
+        h += '</pre>\n<hr>\n</header>\n'
+    else:
+        h += hr + '\n'
     return h
 
 
 # GLOBALS ------
 contacts = None
-eol = '\n'
-hr = '-' * 60 + eol     # horizontal ruler
+hr = '-' * 60 + '\n'     # horizontal ruler
 value_pattern = re.compile(r'\+?1?(\d{10})')
 name_pattern = re.compile('[a-zA-Z]+$')
 default_date_interval = [
     datetime.fromisoformat('2016-03-14T23:13:34.000Z'),
     datetime.fromisoformat('2025-03-19T04:30:09.000Z')]
+# 2017-12-13T23:21:48.000Z
+# The first occurrence of regex 'https://(media|voicemail-media)\.textnow\.com'
 default_output_file = 'textnow-data-extractor-output.txt'
 # ---------------
 
@@ -517,14 +583,14 @@ if __name__ == '__main__':
     args = parse_args()
     # print(args)
 
-    # if --html/--raw option specified, change file extension
+    # if --html/--json option specified, change file extension
     if str(args.file) == default_output_file:
         if args.html:
             args.file = args.file.with_suffix('.html')
-        elif args.raw:
-            args.file = args.file.with_suffix('.raw.txt')
+        elif args.json:
+            args.file = args.file.with_suffix('.json')
 
-    path = 'output' / args.file
+    path = args.file
 
     if contacts is None:
         contacts = get_contacts_from_user_shard()
@@ -539,17 +605,28 @@ if __name__ == '__main__':
 
     header = format_header()
 
-    body = ''
+    if args.html:
+        body = '<main class="container font-monospace">\n<ul class="list-unstyled">\n'
+    else:
+        body = ''
+
     for obj in calls_and_messages:
-        if args.raw:
-            body += json.dumps(obj, ensure_ascii=False, indent=4) + ',\n'
+        if args.html:
+            body += json2txt(obj)
+        elif args.json:
+                body += json.dumps(obj, ensure_ascii=False, indent=4) + ',\n'
         else:
             body += json2txt(obj)
 
-    footer = hr
-    footer += f'END: {args.file}\n'
     if args.html:
-        footer += '</pre>\n</body>\n</html>'
+        footer = '</ul>\n</main>\n<footer>\n<hr>\n'
+    else:
+        footer = hr
+
+    footer += f'END: {args.file}\n'
+
+    if args.html:
+        footer += '</footer>\n</body>\n</html>'
 
     doc = header + body + footer
 
