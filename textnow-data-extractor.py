@@ -167,9 +167,9 @@ def json2txt(obj):
         # TEXT MESSAGE
         if obj_type == 'text':
             if direction == incoming:
-                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &rarr; &rarr; Me' + eol
+                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &mdash;&gt; Me' + eol
             else:
-                txt += f'[{obj_type_text[obj_type]}] Me &rarr; &rarr; {get_contact_name(pn)} {pn}' + eol
+                txt += f'[{obj_type_text[obj_type]}] Me &mdash;&gt; {get_contact_name(pn)} {pn}' + eol
             txt += f'"{obj["message"]}"' + eol
 
         elif obj_type == 'missed-call':
@@ -213,10 +213,10 @@ def json2txt(obj):
 
             print(found, iso, media_path)
             if direction == incoming:
-                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &rarr; Me' + eol
+                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &mdash;&gt; Me' + eol
             else:
-                txt += f'[{obj_type_text[obj_type]}] Me &rarr; {get_contact_name(pn)} {pn}' + eol
-            txt += f'{found}: {media_path}' + eol
+                txt += f'[{obj_type_text[obj_type]}] Me &mdash;&gt; {get_contact_name(pn)} {pn}' + eol
+            txt += f'[File: {media_path}]' + eol
             media_path_ext = Path(media_path).suffix
             if args.html:
                 if media_path_ext in audio_formats:
@@ -332,9 +332,9 @@ def parse_args():
                         nargs=0,
                         help='Print all contacts and exit')
     top_level_group.add_argument('-t', '--timespan',
-                                 action=PrintDatetimeLimitsAndExitAction,
-                                 nargs=0,
-                                 help='Print the earliest and latest datetimes in calls.json and messages.json and exit')
+                        action=PrintDatetimeLimitsAndExitAction,
+                        nargs=0,
+                        help='Print the earliest and latest datetimes in calls.json and messages.json and exit')
     top_level_group.add_argument('-n', '--name',
                         action=PrintMatchingContactsAndExitAction,
                         metavar='PATTERN',
@@ -370,9 +370,11 @@ def parse_args():
     # cl = '-n gyps'
     # cl = '-p 5035680639'
     # cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -f g-temp-number.html --html'
-    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html'
-    cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
-    # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.txt'
+    cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f Post-Incident-Calls-and-Messages.html'
+    # cl = '-d 2024-11-01 --html -f pre-incident-calls-and-messages.html'
+    # cl = '-dd 2024-11-02 2024-11-04 -f Incident-Calls-and-Messages.html --html'
+    # cl = '-dd 2023-03-07T16:49:30 2023-03-07t16:49:40 --html -f text-messages-regarding-e-1.html'
+    # cl = '-dd 2023-03-07T21:00 2023-03-08t23:00 --html -f text-messages-regarding-e-2.html'
     # cl = '-d 2017-02-11 --html'
 
     cl = cl.split()
@@ -507,62 +509,74 @@ def print_err(level, msg, fatal=False):
 
 
 def format_header():
-    h = ''
-    if args.html:
-        h += '''<!doctype html>
-<html lang="en" data-bs-theme="dark">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>''' + str(args.file) + '''</title>
-  <link rel="icon" href="pentagram-icon.png" type="image/png">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-<style>
-img { 
-  width: 75%; 
-  border: 1px black solid;
-  border-radius: 1rem;
-}
-li {
-  margin-bottom: 1.5em;
-}
-</style>
-</head>
-<body>
-<header class="container">
-'''
-
-    if args.html:
-        h += '<hr>\n<pre>\n'
-    else:
-        h += hr
-    h += f'FILENAME   : {args.file}\n'
-    h += f'START DATE : {iso2localf(ante)}\n'
-    h += f'END DATE   : {iso2localf(post)}\n'
-    h += f'CONTACT(S) : '
-
     if args.phone:
         contact = f'{args.phone} {get_contact_name(args.phone)}'
     else:
         contact = 'All'
 
-    h += contact + '\n'
-    h += '\n'
-    h += '(For source code see:\n'
     if args.html:
-        h += '<a href="https://github.com/petergrace1618/textnow-data-extractor.git">'
+        h = f'''<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{str(args.file)}</title>
+  <link rel="icon" href="pentagram-icon.png" type="image/png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" 
+    rel="stylesheet" 
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" 
+    crossorigin="anonymous">
+<style>
+img {{ 
+  width: 75%; 
+  border: 1px black solid;
+  border-radius: 1rem;
+}}
+li {{
+  margin-bottom: 1.5em;
+}}
+</style>
+</head>
+<body>
+<header class="container font-monospace">
+<hr>
+<div class="row">
+<div class="col-sm-3">FILENAME:</div>
+<div class="col-sm-9">{args.file}</div>
+</div>
+<div class="row">
+<div class="col-sm-3">START DATE:</div>
+<div class="col-sm-9">{iso2localf(ante)}</div>
+</div>
+<div class="row">
+<div class="col-sm-3">END DATE:</div>
+<div class="col-sm-9">{iso2localf(post)}</div>
+</div>
+<div class="row">
+<div class="col-sm-3">CONTACT(S):</div>
+<div class="col-sm-9">{contact}</div>
+</div>
+<br>
+(For source code see:
+<a href="https://github.com/petergrace1618/textnow-data-extractor.git">
+    https://github.com/petergrace1618/textnow-data-extractor.git
+</a>)
+<hr>
+</header>
+<main class="container font-monospace">
+<ul class="list-unstyled">'''
 
-    h += 'https://github.com/petergrace1618/textnow-data-extractor.git'
-
-    if args.html:
-        h += '</a>'
-
-    h += ')\n'
-
-    if args.html:
-        h += '</pre>\n<hr>\n</header>\n'
     else:
-        h += hr + '\n'
+        h = f'''{hr}  
+FILENAME   : {args.file}
+START DATE : {iso2localf(ante)}
+END DATE   : {iso2localf(post)}
+CONTACT(S) : {contact}
+
+(For source code see:
+https://github.com/petergrace1618/textnow-data-extractor.git)
+{hr}
+'''
     return h
 
 
@@ -606,7 +620,7 @@ if __name__ == '__main__':
     header = format_header()
 
     if args.html:
-        body = '<main class="container font-monospace">\n<ul class="list-unstyled">\n'
+        body = '\n'
     else:
         body = ''
 
