@@ -1,54 +1,65 @@
 # tde -- TextNow Data Extractor
-## The Problem
-I requested my call and text message history from my cell phone provider, TextNow, in preparation for a potential court case, because the defendant admitted her wrongdoing in several text messages and a voicemail. 
+A Python script to extract the call and text message history from a TextNow data disclosure package, and output it in human-readable format. An explanation of the necessity of the script can be found in the project wiki.
 
-I could have taken screenshots of the text messages, but photos can be altered, and a lawyer instructed me that I want to avoid a situation where it was my word against hers. So to preclude this, I used the same method that a law enforcement agency or an attorney would use to subpoena the information.
+The data disclosure package has the following structure.
 
-As the following email shows, the data download is separated into multiple files and folders. 
-
-![TextNow data disclosure email](readme-imgs/textnow-data-disclosure-email-1.png)
-![TextNow data disclosure email](readme-imgs/textnow-data-disclosure-email-2.png) 
-
-The pertinent files are calls.json, messages.json, and user_shard.json which contains my contact list, and have the following format. 
-
-messages.json:
 ```
-{
+client_logs/
+media/
+voicemail/
+calls.json
+central.json
+inventory.json
+ips.json
+messages.json
+user_profile.json
+user_shard.json
+```
+
+The pertinent files used by the script are:
+
+- `calls.json` which is an array of objects of the form
+```
+  {
+    "start_time": "2016-06-06T22:13:18.000+00:00",
+    "duration": 128.0,
+    "caller": "+1503888525",
+    "called": "+1503756462"
+  }
+```
+- `messages.json`, also an array of objects
+```
+  {
     "username": "petergrace",
     "device_id": "",
     "direction": 1,
-    "contact_value": "+15038902176",
+    "contact_value": "+1503890217",
     "contact_name": "1 (503) 890-2176",
     "date": "2016-03-20T00:52:05.000Z",
     "message": "Ok. Stop by and see it later when you can.",
     "read": 1,
     "deleted": 0
-  },
+  }
 ```
-
-calls.json
+- `user_shard.json`, a single object which contains an array of contact objects
 ```
   {
-    "start_time": "2016-06-06T22:13:18.000+00:00",
-    "duration": 128.0,
-    "caller": "+15038885253",
-    "called": "+15037564626"
-  },
-```
-
-user_shard.json:
-
-```
-{
     "users": [...],
     "user_attributes": [...],
     "sessions": [...],
     "subscriptions": [...],
     "identities": [...],
     "devices": [...],
-    "contacts": [...]
-}
+    "contacts": [
+      {
+        "contact_value": "+1503890217",
+        "name": "Unknown"
+      },
+        ...
+    ]
+  }
 ```
-## The Solution
 
-Write a Python script to merge the relevant files and convert it into human-readable format.
+- `media/` which contains files of the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
+
+- `voicemail/` which contains all WAV files.
