@@ -1,5 +1,5 @@
 # tde -- TextNow Data Extractor
-A Python script to extract the call and text message history from a TextNow data disclosure package, and output it in human-readable format. An explanation of the necessity of the script can be found in the project [wiki](https://github.com/petergrace1618/textnow-data-extractor/wiki).
+A Python script to extract the call and text message history from a TextNow data disclosure package, and output it in human-readable format. An explanation of the necessity of the script can be found in [the project wiki](https://github.com/petergrace1618/textnow-data-extractor/wiki).
 
 The data disclosure package has the following structure.
 
@@ -27,7 +27,7 @@ The pertinent files used by the script are:
     "called": "+1503756462"
   }
 ```
-- `messages.json`, also an array of objects
+- `messages.json`, also an array of objects of the form
 ```
   {
     "username": "petergrace",
@@ -62,4 +62,4 @@ The pertinent files used by the script are:
 
 - `media/` which contains files of the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
 
-- `voicemail/` which contains all WAV files.
+- `voicemail/` which contains only WAV files.
