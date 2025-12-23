@@ -1,5 +1,5 @@
 # tde -- TextNow Data Extractor
-A Python script to extract the call and text message history from a TextNow data disclosure package, and output it in human-readable format. An explanation of the necessity of the script can be found in the project wiki.
+A Python script to extract the call and text message history from a TextNow data disclosure package, and output it in human-readable format. An explanation of the necessity of the script can be found in the project [wiki](https://github.com/petergrace1618/textnow-data-extractor/wiki).
 
 The data disclosure package has the following structure.
 
