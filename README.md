@@ -1,7 +1,7 @@
 # tde -- TextNow Data Extractor
-A Python script to extract the call and text message history from a TextNow data disclosure package, and output it in human-readable format. An explanation of the necessity of the script can be found in [the project wiki](https://github.com/petergrace1618/textnow-data-extractor/wiki).
+`tde` is a Python script which extracts the call and text message history from a TextNow data disclosure package, and outputs it in human-readable format. The necessity of the script is explained in [the project wiki](https://github.com/petergrace1618/textnow-data-extractor/wiki).
 
-The data disclosure package has the following structure.
+The ZIP file containing the data disclosure package has the following structure:
 
 ```
 client_logs/
@@ -18,7 +18,7 @@ user_shard.json
 
 The pertinent files used by the script are:
 
-- `calls.json` which is an array of objects of the form
+- `calls.json`, a list of objects having the following form
 ```
   {
     "start_time": "2016-06-06T22:13:18.000+00:00",
@@ -27,7 +27,8 @@ The pertinent files used by the script are:
     "called": "+1503756462"
   }
 ```
-- `messages.json`, also an array of objects of the form
+
+- `messages.json`, also a list of objects
 ```
   {
     "username": "petergrace",
@@ -41,7 +42,8 @@ The pertinent files used by the script are:
     "deleted": 0
   }
 ```
-- `user_shard.json`, a single object which contains an array of contact objects
+
+- `user_shard.json`, a single object containing a list of contact objects
 ```
   {
     "users": [...],
@@ -60,6 +62,11 @@ The pertinent files used by the script are:
   }
 ```
 
-- `media/` which contains files of the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
+- `media/`, a directory containing messages other than text messages and voicemails from restricted numbers. Files are in the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
 
-- `voicemail/` which contains only WAV files.
+- `voicemail/`, a directory containing only WAV files.
+
+The ZIP file has not been uploaded to the repository for two reasons: one, it's 1.2 GB; and two, it contains private information such as names, phone numbers, voicemails, and text and media messages--all of a personal nature and unrelated to the purpose of the script.
+
+The main functionality is performed by `merge_calls_and_messages()` and `json2txtf()`. The former is an ad hoc version of `itertools.zip_longest()` which merges the files `calls.json` and `messages.json` in chronological order and filters by date and contact; the latter outputs the merged list in TXT, HTML, or JSON format. The dates, contacts, and output format are specified by command line options.
+
