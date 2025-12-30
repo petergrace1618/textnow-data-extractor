@@ -147,7 +147,9 @@ def json2txt(obj):
     if 'date' in obj:
         # phone number
         pn = normalize_number(obj['contact_value'])
-        # datetime
+        contact = get_contact_name(pn)
+        if args.redact:
+            pn = redact(pn)
         direction = obj['direction']
 
         # get message type. message types are: text, voicemail, media
@@ -167,13 +169,15 @@ def json2txt(obj):
         # TEXT MESSAGE
         if obj_type == 'text':
             if direction == incoming:
-                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &mdash;&gt; Me' + eol
+                txt += f'{contact} {pn} &mdash;&gt; Me' + eol
             else:
-                txt += f'[{obj_type_text[obj_type]}] Me &mdash;&gt; {get_contact_name(pn)} {pn}' + eol
+                txt += f'Me &mdash;&gt; {contact} {pn}' + eol
+            txt += f'[{dt}]' + eol
             txt += f'"{obj["message"]}"' + eol
 
         elif obj_type == 'missed-call':
-            txt += f'[MISSED CALL] {get_contact_name(pn)} {pn}' + eol
+            txt += f'MISSED CALL: {contact} {pn}' + eol
+            txt += f'[{dt}]' + eol
 
         # VOICEMAIL MESSAGE
         elif obj_type == 'voicemail-media':
@@ -186,8 +190,9 @@ def json2txt(obj):
                     break
 
             print(found, iso, vm_path)
-            txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn}' + eol
-            txt += f'[File: {vm_path}]' + eol
+            txt += f'{obj_type_text[obj_type]}: {get_contact_name(pn)} {pn}' + eol
+            txt += f'[{dt}]' + eol
+            txt += f'[FILE: {vm_path}]' + eol
             if args.html:
                 txt += f'<audio controls src="{vm_path}"></audio>' + eol
 
@@ -213,10 +218,12 @@ def json2txt(obj):
 
             print(found, iso, media_path)
             if direction == incoming:
-                txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn} &mdash;&gt; Me' + eol
+                txt += f'{contact} {pn} &mdash;&gt; Me' + eol
             else:
-                txt += f'[{obj_type_text[obj_type]}] Me &mdash;&gt; {get_contact_name(pn)} {pn}' + eol
-            txt += f'[File: {media_path}]' + eol
+                txt += f'Me &mdash;&gt; {contact} {pn}' + eol
+            txt += f'[{dt}]' + eol
+            txt += f'[FILE: {media_path}]' + eol
+
             media_path_ext = Path(media_path).suffix
             if args.html:
                 if media_path_ext in audio_formats:
@@ -236,16 +243,21 @@ def json2txt(obj):
             True: ('in', incoming, caller),
             False: ('out', outgoing, called)
         }[called == me]
-        txt += f'[{obj_type_text[obj_type]}] {get_contact_name(pn)} {pn}' + eol
-        txt += f"Duration: {format_duration(obj['duration'])}" + eol
+        contact = get_contact_name(pn)
+        if args.redact:
+            pn = redact(pn)
+
+        txt += f'{obj_type_text[obj_type]}: {contact} {pn}' + eol
+        txt += f'[{dt}]' + eol
+        txt += f"DURATION: {format_duration(obj['duration'])}" + eol
 
     # unknown object
     else:
         print(obj)
         raise TypeError('Unknown object type')
 
-    # add timestamp
-    txt += f'[{dt}]' + eol
+    # # add timestamp
+    # txt += f'[{dt}]' + eol
 
     if args.html:
         txt += '</li>\n'
@@ -287,13 +299,13 @@ def format_duration(d):
     m, s = divmod(d, 60)
     return f"{int(m)}m {int(s)}s"
 
-def redacted(pn):
+def redact(pn):
     """Replace the last four digits of the phone number with X's.
     """
     if pn == 'Restricted':
         return pn
     return pn[0:8] + 'XXXX'
-### END helper functions for json2html()
+### END helper functions for json2txt()
 
 ### BEGIN helper function for get_contact_name(),
 ### get_contact_from_user_shard(), and json2html()
@@ -321,7 +333,7 @@ def parse_args():
         option is specified, call/message data is extracted for all 
         contacts in the given timespan. Dates must be in ISO format, 
         and are converted to local time. If no file is specified, saves
-        output to textnow-data-extractor-output.txt''',
+        output to tde-output.txt ''',
         epilog='''EXAMPLE: "$%(prog)s -p 5032271212 -dd 2024-05-31 
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
@@ -357,8 +369,11 @@ def parse_args():
                         action='store_true', default=False,
                         help='Output as HTML document.')
     file_type_group.add_argument('-j', '--json',
-                         action='store_true', default=False,
-                         help='Output call/message data in raw JSON format.')
+                        action='store_true', default=False,
+                        help='Output as JSON.')
+    parser.add_argument('-r', '--redact',
+                        action='store_true', default=False,
+                        help='Redact phone numbers.')
     parser.add_argument('-f', '--file',
                         type=Path,
                         default=default_output_file,
@@ -369,13 +384,13 @@ def parse_args():
     # cl = '-h'
     # cl = '-n gyps'
     # cl = '-p 5035680639'
-    # cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -f g-temp-number.html --html'
+    cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -r --html'
     # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html'
     # cl = '-d 2024-11-01 --html -f pre-incident-calls-and-messages.html'
-    cl = '-dd 2024-11-02 2024-11-04 -f incident-calls-and-messages.html --html'
+    # cl = '-dd 2024-11-02 2024-11-04 -f incident-calls-and-messages.html --html -r'
     # cl = '-dd 2023-03-07T16:49:30 2023-03-07t16:49:40 --html -f text-messages-regarding-e-1.html'
     # cl = '-dd 2023-03-07T21:00 2023-03-08t23:00 --html -f text-messages-regarding-e-2.html'
-    # cl = '-d 2017-02-11 --html'
+    # cl = '-d 2017-02-11 --html -r'
 
     cl = cl.split()
 
@@ -509,8 +524,13 @@ def print_err(level, msg, fatal=False):
 
 
 def format_header():
+    pn = args.phone
+    contact = get_contact_name(pn)
+    if args.redact:
+        pn = redact(pn)
+
     if args.phone:
-        contact = f'{args.phone} {get_contact_name(args.phone)}'
+        contact = f'{pn} {contact}'
     else:
         contact = 'All'
 
@@ -557,10 +577,10 @@ li {{
 <div class="col-sm-9">{contact}</div>
 </div>
 <br>
-(For source code and documentation see:
-<a href="https://github.com/petergrace1618/textnow-data-extractor.git">
-    https://github.com/petergrace1618/textnow-data-extractor.git
-</a>)
+(For the transcript source see:
+<a href="https://github.com/petergrace1618/textnow-data-extractor/wiki"
+    target="_blank">
+    https://github.com/petergrace1618/textnow-data-extractor/wiki</a>)
 <hr>
 </header>
 <main class="container font-monospace">
@@ -574,7 +594,7 @@ END DATE   : {iso2localf(post)}
 CONTACT(S) : {contact}
 
 (For source code see:
-https://github.com/petergrace1618/textnow-data-extractor.git)
+https://github.com/petergrace1618/textnow-data-extractor/wiki)
 {hr}
 '''
     return h
@@ -590,7 +610,7 @@ default_date_interval = [
     datetime.fromisoformat('2025-03-19T04:30:09.000Z')]
 # 2017-12-13T23:21:48.000Z
 # The first occurrence of regex 'https://(media|voicemail-media)\.textnow\.com'
-default_output_file = 'textnow-data-extractor-output.txt'
+default_output_file = 'tde-output.txt'
 # ---------------
 
 if __name__ == '__main__':

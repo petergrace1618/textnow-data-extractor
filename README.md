@@ -3,7 +3,7 @@
 
 The data disclosure package is in the form of a ZIP file which has not been included in the repository because it contains personal information such as names, phone numbers, voicemails, and private text and media messages. 
 
-The main functionality is performed by `merge_calls_and_messages()` and `json2txtf()`. The former is an ad hoc version of `itertools.zip_longest()` which merges the files `calls.json` and `messages.json` in chronological order and filters by date and contact; the latter outputs the merged list in TXT, HTML, or JSON format. The dates, contacts, and output format are specified by command line options.
+The main functionality is performed by `merge_calls_messages()` and `json2txt()`. The former is an ad hoc version of `itertools.zip_longest()` which merges the files `calls.json` and `messages.json` in chronological order and filters by date and contact; the latter outputs the merged list in TXT, HTML, or JSON format. The dates, contacts, and output format are specified by command line options.
 
 ```
 client_logs/
