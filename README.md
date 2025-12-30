@@ -1,7 +1,9 @@
 # tde -- TextNow Data Extractor
 `tde` is a Python script which extracts the call and text message history from a TextNow data disclosure package, and outputs it in human-readable format. The necessity for the script is explained in [the project wiki](https://github.com/petergrace1618/textnow-data-extractor/wiki).
 
-The ZIP file containing the data disclosure package has the following structure:
+The data disclosure package is in the form of a ZIP file which has not been included in the repository because it contains personal information such as names, phone numbers, voicemails, and private text and media messages. 
+
+The main functionality is performed by `merge_calls_and_messages()` and `json2txtf()`. The former is an ad hoc version of `itertools.zip_longest()` which merges the files `calls.json` and `messages.json` in chronological order and filters by date and contact; the latter outputs the merged list in TXT, HTML, or JSON format. The dates, contacts, and output format are specified by command line options.
 
 ```
 client_logs/
@@ -62,11 +64,6 @@ The pertinent files used by the script are:
   }
 ```
 
-- `media/`, a directory containing messages other than text messages and voicemails from restricted numbers. Files are in the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
+- `media/`, a directory containing messages other than text messages, and voicemails from restricted numbers. Files are in the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
 
 - `voicemail/`, a directory containing only WAV files.
-
-The ZIP file has not been uploaded to the repository because it's 1.2 GB, and it contains private information such as names, phone numbers, voicemails, and text and media messages--all of a personal nature and unrelated to the purpose of the script.
-
-The main functionality is performed by `merge_calls_and_messages()` and `json2txtf()`. The former is an ad hoc version of `itertools.zip_longest()` which merges the files `calls.json` and `messages.json` in chronological order and filters by date and contact; the latter outputs the merged list in TXT, HTML, or JSON format. The dates, contacts, and output format are specified by command line options.
-
