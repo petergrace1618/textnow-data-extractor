@@ -384,12 +384,12 @@ def parse_args():
     # cl = '-h'
     # cl = '-n gyps'
     # cl = '-p 5035680639'
-    cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -r --html'
-    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html'
-    # cl = '-d 2024-11-01 --html -f pre-incident-calls-and-messages.html'
+    # cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -r --html'
+    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html -r'
+    # cl = '-d 2024-11-01 --html -f pre-incident-calls-and-messages.html -r'
     # cl = '-dd 2024-11-02 2024-11-04 -f incident-calls-and-messages.html --html -r'
-    # cl = '-dd 2023-03-07T16:49:30 2023-03-07t16:49:40 --html -f text-messages-regarding-e-1.html'
-    # cl = '-dd 2023-03-07T21:00 2023-03-08t23:00 --html -f text-messages-regarding-e-2.html'
+    # cl = '-dd 2023-03-07T16:49:30 2023-03-07t16:49:40 --html -f text-messages-regarding-e-1.html -r'
+    cl = '-dd 2023-03-07T21:00 2023-03-08t23:00 --html -f text-messages-regarding-e-2.html -r'
     # cl = '-d 2017-02-11 --html -r'
 
     cl = cl.split()
@@ -524,12 +524,11 @@ def print_err(level, msg, fatal=False):
 
 
 def format_header():
-    pn = args.phone
-    contact = get_contact_name(pn)
-    if args.redact:
-        pn = redact(pn)
-
     if args.phone:
+        pn = args.phone
+        contact = get_contact_name(pn)
+        if args.redact:
+            pn = redact(pn)
         contact = f'{pn} {contact}'
     else:
         contact = 'All'
