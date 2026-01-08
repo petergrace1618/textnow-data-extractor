@@ -192,7 +192,7 @@ def json2txt(obj):
             print(found, iso, vm_path)
             txt += f'{obj_type_text[obj_type]}: {get_contact_name(pn)} {pn}' + eol
             txt += f'[{dt}]' + eol
-            txt += f'[FILE: {vm_path}]' + eol
+            txt += f'FILENAME: {vm_path}' + eol
             if args.html:
                 txt += f'<audio controls src="{vm_path}"></audio>' + eol
 
@@ -385,11 +385,11 @@ def parse_args():
     # cl = '-n gyps'
     # cl = '-p 5035680639'
     # cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -r --html'
-    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html -r'
-    # cl = '-d 2024-11-01 --html -f pre-incident-calls-and-messages.html -r'
+    cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html -r'
+    # cl = '-d 2024-11-01 -f pre-incident-calls-and-messages.html --html -r'
     # cl = '-dd 2024-11-02 2024-11-04 -f incident-calls-and-messages.html --html -r'
     # cl = '-dd 2023-03-07T16:49:30 2023-03-07t16:49:40 --html -f text-messages-regarding-e-1.html -r'
-    cl = '-dd 2023-03-07T21:00 2023-03-08t23:00 --html -f text-messages-regarding-e-2.html -r'
+    # cl = '-dd 2023-03-07T21:00 2023-03-08t23:00 --html -f text-messages-regarding-e-2.html -r'
     # cl = '-d 2017-02-11 --html -r'
 
     cl = cl.split()
