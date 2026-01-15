@@ -135,6 +135,7 @@ def json2txt(obj):
     media_dir = Path('textnow-data', 'media')
     iso = obj['date'] if 'date' in obj else obj['start_time']
     dt = iso2localf(iso)
+    arrow = '&mdash;&gt;' if args.html else '-->'
 
     if args.html:
         eol = '<br>\n'
@@ -169,9 +170,9 @@ def json2txt(obj):
         # TEXT MESSAGE
         if obj_type == 'text':
             if direction == incoming:
-                txt += f'{contact} {pn} &mdash;&gt; Me' + eol
+                txt += f'{contact} {pn} {arrow} Me' + eol
             else:
-                txt += f'Me &mdash;&gt; {contact} {pn}' + eol
+                txt += f'Me {arrow} {contact} {pn}' + eol
             txt += f'[{dt}]' + eol
             txt += f'"{obj["message"]}"' + eol
 
@@ -218,11 +219,11 @@ def json2txt(obj):
 
             print(found, iso, media_path)
             if direction == incoming:
-                txt += f'{contact} {pn} &mdash;&gt; Me' + eol
+                txt += f'{contact} {pn} {arrow} Me' + eol
             else:
-                txt += f'Me &mdash;&gt; {contact} {pn}' + eol
+                txt += f'Me {arrow} {contact} {pn}' + eol
             txt += f'[{dt}]' + eol
-            txt += f'[FILE: {media_path}]' + eol
+            txt += f'FILE: {media_path}' + eol
 
             media_path_ext = Path(media_path).suffix
             if args.html:
@@ -265,7 +266,7 @@ def json2txt(obj):
         txt += eol
     return txt
 
-### BEGIN helper functions for json2html()
+### BEGIN helper functions for json2txt()
 def iso2id(iso):
     return datetime.fromisoformat(iso).astimezone().strftime('%a-%b-%d-%Y-%I-%M-%S')
 
@@ -322,7 +323,7 @@ def normalize_number(v):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description=''' Merges call and message data chronologically 
+        description='''Merges call and message data chronologically 
         from textnow-data/calls.json and textnow-data/messages.json 
         using contacts from textnow-data/user_shard.json. Call/message 
         data are then extracted for the given contact in the given time 
@@ -333,7 +334,7 @@ def parse_args():
         option is specified, call/message data is extracted for all 
         contacts in the given timespan. Dates must be in ISO format, 
         and are converted to local time. If no file is specified, saves
-        output to tde-output.txt ''',
+        output to tde-output.txt''',
         epilog='''EXAMPLE: "$%(prog)s -p 5032271212 -dd 2024-05-31 
         2024-05-01 -f may-radiocabs.txt" saves all calls/messages to/from 
         Radio Cab in May of 2024 to a file named may-radiocabs.txt.''')
@@ -382,10 +383,9 @@ def parse_args():
     # command line arguments
     # cl = ''
     # cl = '-h'
-    # cl = '-n gyps'
-    # cl = '-p 5035680639'
+    cl = '-p 3603601072 -dd 2021-01-01 2024-12-31 --html'
     # cl = '-dd 2024-01-01 2024-12-31 -p 5033449503 -r --html'
-    cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html -r'
+    # cl = '-dd 2024-11-05 2025-02-28 -p 5035726103 --html -f post-incident-calls-and-messages.html -r'
     # cl = '-d 2024-11-01 -f pre-incident-calls-and-messages.html --html -r'
     # cl = '-dd 2024-11-02 2024-11-04 -f incident-calls-and-messages.html --html -r'
     # cl = '-dd 2023-03-07T16:49:30 2023-03-07t16:49:40 --html -f text-messages-regarding-e-1.html -r'
@@ -425,6 +425,7 @@ class PrintDatetimeLimitsAndExitAction(argparse.Action):
         # load call data
         with open('textnow-data/calls.json', encoding='utf-8') as f:
             call_data = json.load(f)
+
         d[self.fdt(call_data[0]['start_time'])] = 'calls.json'
         d[self.fdt(call_data[-1:][0]['start_time'])] = 'calls.json'
         del call_data

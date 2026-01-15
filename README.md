@@ -25,8 +25,8 @@ The pertinent files used by the script are:
   {
     "start_time": "2016-06-06T22:13:18.000+00:00",
     "duration": 128.0,
-    "caller": "+1503888525",
-    "called": "+1503756462"
+    "caller": "+1503888XXXX",
+    "called": "+1503756XXXX"
   }
 ```
 
@@ -36,8 +36,8 @@ The pertinent files used by the script are:
     "username": "petergrace",
     "device_id": "",
     "direction": 1,
-    "contact_value": "+1503890217",
-    "contact_name": "1 (503) 890-2176",
+    "contact_value": "+1503890XXXX",
+    "contact_name": "1 (503) 890-XXXX",
     "date": "2016-03-20T00:52:05.000Z",
     "message": "Ok. Stop by and see it later when you can.",
     "read": 1,
@@ -56,7 +56,7 @@ The pertinent files used by the script are:
     "devices": [...],
     "contacts": [
       {
-        "contact_value": "+1503890217",
+        "contact_value": "+1503890XXXX",
         "name": "Unknown"
       },
         ...
@@ -67,3 +67,4 @@ The pertinent files used by the script are:
 - `media/`, a directory containing messages other than text messages, and voicemails from restricted numbers. Files are in the following formats: 3GPP, PDF, AMR, GIF, JPEG, PNG, MP4, VCARD, WAV, X-WAV
 
 - `voicemail/`, a directory containing only WAV files.
+
