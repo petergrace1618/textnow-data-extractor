@@ -22,27 +22,27 @@ The pertinent files used by the script are:
 
 - `calls.json`, a list of objects having the following form
 ```
-  {
-    "start_time": "2016-06-06T22:13:18.000+00:00",
-    "duration": 128.0,
-    "caller": "+1503888XXXX",
+{
+    "start_time": "2024-11-03T09:43:33.000+00:00",
+    "duration": 45.0,
+    "caller": "+1503344XXXX",
     "called": "+1503756XXXX"
-  }
+}
 ```
 
 - `messages.json`, also a list of objects
 ```
-  {
+{
     "username": "petergrace",
     "device_id": "",
     "direction": 1,
-    "contact_value": "+1503890XXXX",
-    "contact_name": "1 (503) 890-XXXX",
-    "date": "2016-03-20T00:52:05.000Z",
-    "message": "Ok. Stop by and see it later when you can.",
+    "contact_value": "+1503344XXXX",
+    "contact_name": "Gyps",
+    "date": "2024-11-03T09:04:34.000Z",
+    "message": "Hey, your friend came over and I gave em some of your stuff.",
     "read": 1,
     "deleted": 0
-  }
+}
 ```
 
 - `user_shard.json`, a single object containing a list of contact objects
@@ -56,8 +56,8 @@ The pertinent files used by the script are:
     "devices": [...],
     "contacts": [
       {
-        "contact_value": "+1503890XXXX",
-        "name": "Unknown"
+        "contact_value": "+1503344XXXX",
+        "name": "Gyps"
       },
         ...
     ]
